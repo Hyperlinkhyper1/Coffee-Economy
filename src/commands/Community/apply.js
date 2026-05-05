@@ -66,6 +66,34 @@ export default {
 
     category: "Community",
 
+    async autocomplete(interaction) {
+        const focusedOption = interaction.options.getFocused(true);
+        const client = interaction.client;
+        
+        if (focusedOption.name === 'application') {
+            try {
+                const roles = await getApplicationRoles(client, interaction.guildId);
+                const roleName = interaction.options.getString('application', false);
+                
+                // Filter: only show enabled applications
+                const filtered = roles.filter(role =>
+                    role.enabled !== false && 
+                    role.name.toLowerCase().startsWith(roleName?.toLowerCase() || '')
+                );
+                
+                await interaction.respond(
+                    filtered.slice(0, 25).map(role => ({
+                        name: `${role.name}${role.enabled === false ? ' (disabled)' : ''}`,
+                        value: role.name
+                    }))
+                ).catch(() => {});
+            } catch (error) {
+                logger.error('Error handling apply autocomplete:', error);
+                await interaction.respond([]).catch(() => {});
+            }
+        }
+    },
+
     execute: withErrorHandling(async (interaction) => {
         if (!interaction.inGuild()) {
             return InteractionHelper.safeReply(interaction, {

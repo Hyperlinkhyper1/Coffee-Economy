@@ -101,6 +101,33 @@ export default {
 
     category: "Community",
 
+    async autocomplete(interaction) {
+        const focusedOption = interaction.options.getFocused(true);
+        const client = interaction.client;
+        
+        if (focusedOption.name === 'application') {
+            try {
+                const roles = await getApplicationRoles(client, interaction.guildId);
+                const appName = interaction.options.getString('application', false);
+                
+                // Show all applications (enabled and disabled), but mark disabled ones
+                const filtered = roles.filter(role =>
+                    role.name.toLowerCase().startsWith(appName?.toLowerCase() || '')
+                );
+                
+                await interaction.respond(
+                    filtered.slice(0, 25).map(role => ({
+                        name: `${role.name}${role.enabled === false ? ' (disabled)' : ''}`,
+                        value: role.name
+                    }))
+                ).catch(() => {});
+            } catch (error) {
+                logger.error('Error handling app-admin autocomplete:', error);
+                await interaction.respond([]).catch(() => {});
+            }
+        }
+    },
+
     execute: withErrorHandling(async (interaction) => {
         if (!interaction.inGuild()) {
             return InteractionHelper.safeReply(interaction, {
