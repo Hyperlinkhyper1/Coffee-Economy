@@ -6,7 +6,7 @@ import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { JOBS, getJob, getUnlockedJobs } from '../../utils/jobs.js';
 
-const WORK_COOLDOWN = 30 * 60 * 1000;
+const WORK_COOLDOWN = 1000; // 1 second for testing
 const LAPTOP_MULTIPLIER = 1.5;
 
 export default {
