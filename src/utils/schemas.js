@@ -84,6 +84,7 @@ export const EconomyDataSchema = z
     level: z.number().int().nonnegative().default(1),
     inventory: z.record(z.any()).default({}),
     cooldowns: z.record(z.number().int().nonnegative()).default({}),
+    announcedAchievements: z.array(z.string()).default([]),
     stats: z.object({
         messages: z.number().int().nonnegative().default(0),
         reactions: z.number().int().nonnegative().default(0),

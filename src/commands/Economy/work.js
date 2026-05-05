@@ -5,6 +5,7 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { JOBS, getJob, getUnlockedJobs } from '../../utils/jobs.js';
+import { checkAndAnnounceAchievements } from '../../config/achievements.js';
 
 const WORK_COOLDOWN = 45 * 60 * 1000; // 45 minutes in milliseconds
 const LAPTOP_MULTIPLIER = 1.5;
@@ -254,6 +255,8 @@ export default {
             userData.wallet = (userData.wallet || 0) + earned;
             userData.lastWork = now;
             userData.shifts = (userData.shifts || 0) + 1;
+
+            await checkAndAnnounceAchievements(client, interaction.guild, interaction.member, userData);
 
             await setEconomyData(client, guildId, userId, userData);
 

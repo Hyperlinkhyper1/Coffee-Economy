@@ -3,6 +3,8 @@ import { logger, startupLog } from "../utils/logger.js";
 import config from "../config/application.js";
 import { reconcileReactionRoleMessages } from "../services/reactionRoleService.js";
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
+import { LotteryService } from '../services/lotteryService.js';
+import { checkAndAnnounceAchievements } from '../config/achievements.js';
 
 export default {
   name: Events.ClientReady,
@@ -21,6 +23,9 @@ export default {
         `Reaction role reconciliation: scanned ${reconciliationSummary.scannedMessages}, removed ${reconciliationSummary.removedMessages}, errors ${reconciliationSummary.errors}`
       );
 
+      // Initialize Lottery Service
+      await LotteryService.initialize(client);
+
       // Voice Time Tracker (runs every minute)
       setInterval(async () => {
         for (const guild of client.guilds.cache.values()) {
@@ -34,6 +39,9 @@ export default {
                 userData.stats = { messages: 0, reactions: 0, voiceMinutes: 0, isBoosting: false };
               }
               userData.stats.voiceMinutes = (userData.stats.voiceMinutes || 0) + 1;
+
+              await checkAndAnnounceAchievements(client, guild, voiceState.member, userData);
+
               await setEconomyData(client, guild.id, voiceState.member.id, userData);
             } catch (error) {
               logger.error(`Error tracking voice time for ${voiceState.member.id}:`, error);

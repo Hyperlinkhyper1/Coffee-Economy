@@ -29,6 +29,7 @@ export const DEFAULT_ECONOMY_DATA = {
     inventory: {},
     upgrades: {},
     cooldowns: {},
+    announcedAchievements: [],
     stats: {
         messages: 0,
         reactions: 0,

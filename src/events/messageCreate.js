@@ -9,6 +9,7 @@ import { getLevelingConfig, getUserLevelData } from '../services/leveling.js';
 import { addXp } from '../services/xpSystem.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
+import { checkAndAnnounceAchievements } from '../config/achievements.js';
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -35,6 +36,9 @@ async function handleStatsTracking(message, client) {
       userData.stats = { messages: 0, reactions: 0, voiceMinutes: 0, isBoosting: false };
     }
     userData.stats.messages = (userData.stats.messages || 0) + 1;
+    
+    await checkAndAnnounceAchievements(client, message.guild, message.member, userData);
+    
     await setEconomyData(client, message.guild.id, message.author.id, userData);
   } catch (error) {
     logger.error('Error tracking message stats:', error);

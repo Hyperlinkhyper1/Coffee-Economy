@@ -1,3 +1,6 @@
+import { infoEmbed } from '../utils/embeds.js';
+import { logger } from '../utils/logger.js';
+
 export const ACHIEVEMENT_LEVELS = {
     BRONZE: 'Bronze',
     SILVER: 'Silver',
@@ -134,4 +137,46 @@ export function getAchievementStatus(userData) {
                 : (nextThreshold ? currentValue / nextThreshold.value : 1)
         };
     });
+}
+
+export async function checkAndAnnounceAchievements(client, guild, member, userData) {
+    try {
+        const statuses = getAchievementStatus(userData);
+        const newlyEarned = [];
+        
+        userData.announcedAchievements = userData.announcedAchievements || [];
+
+        for (const status of statuses) {
+            if (status.currentLevel) {
+                const achievementKey = `${status.id}:${status.currentLevel}`;
+                if (!userData.announcedAchievements.includes(achievementKey)) {
+                    userData.announcedAchievements.push(achievementKey);
+                    newlyEarned.push(status);
+                }
+            }
+        }
+
+        if (newlyEarned.length > 0) {
+            // Get announcement channel (using leveling config or system channel)
+            const config = await client.db.get(`guild:${guild.id}:leveling`, { enabled: true });
+            const announceChannelId = config.levelUpChannel || guild.systemChannelId;
+            const channel = guild.channels.cache.get(announceChannelId);
+
+            if (channel && channel.isTextBased()) {
+                for (const achievement of newlyEarned) {
+                    const embed = infoEmbed(
+                        `Congratulations ${member}! You've earned the **${achievement.currentLevel}** rank in **${achievement.name}**!`,
+                        "🏆 Achievement Unlocked!"
+                    ).setThumbnail(member.user.displayAvatarURL());
+                    
+                    await channel.send({ embeds: [embed] }).catch(() => {});
+                }
+            }
+            
+            return true; // Data was modified
+        }
+    } catch (error) {
+        logger.error('Error in checkAndAnnounceAchievements:', error);
+    }
+    return false;
 }

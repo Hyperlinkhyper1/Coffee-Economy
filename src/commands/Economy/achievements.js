@@ -64,9 +64,29 @@ export default {
             const userData = await getEconomyData(client, guildId, targetUser.id);
             const achievements = getAchievementStatus(userData);
 
+            const medalCounts = {
+                'Bronze': 0,
+                'Silver': 0,
+                'Gold': 0,
+                'Platinum': 0,
+                'Diamond': 0,
+                'Coffee Champion': 0
+            };
+
+            achievements.forEach(a => {
+                if (a.currentLevel && medalCounts[a.currentLevel] !== undefined) {
+                    medalCounts[a.currentLevel]++;
+                }
+            });
+
+            const medalSummary = Object.entries(medalCounts)
+                .filter(([_, count]) => count > 0)
+                .map(([level, count]) => `**${level}:** ${count}`)
+                .join(' • ');
+
             const embed = createEmbed({
                 title: `🏆 ${targetUser.username}'s Achievements`,
-                description: `Track your progress and unlock legendary ranks!\n\n`,
+                description: `Track your progress and unlock legendary ranks!\n\n${medalSummary ? `🏅 **Medals Earned:** ${medalSummary}\n\n` : ''}`,
                 color: 'economy'
             }).setThumbnail(targetUser.displayAvatarURL());
 

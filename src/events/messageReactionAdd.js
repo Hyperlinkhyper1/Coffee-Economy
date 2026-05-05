@@ -1,6 +1,7 @@
 import { Events } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
+import { checkAndAnnounceAchievements } from '../config/achievements.js';
 
 export default {
     name: Events.MessageReactionAdd,
@@ -17,6 +18,9 @@ export default {
             }
             
             userData.stats.reactions = (userData.stats.reactions || 0) + 1;
+
+            await checkAndAnnounceAchievements(client, reaction.message.guild, reaction.message.guild.members.cache.get(userId), userData);
+
             await setEconomyData(client, guildId, userId, userData);
         } catch (error) {
             logger.error('Error tracking reaction stats:', error);

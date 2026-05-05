@@ -3,6 +3,7 @@ import { successEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { checkAndAnnounceAchievements } from '../../config/achievements.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const EMBED_DESCRIPTION_LIMIT = 4096;
@@ -88,6 +89,9 @@ export default {
               userData.stats = { messages: 0, reactions: 0, voiceMinutes: 0, isBoosting: false, fightsWon: 0 };
           }
           userData.stats.fightsWon = (userData.stats.fightsWon || 0) + 1;
+          
+          await checkAndAnnounceAchievements(client, interaction.guild, winner === challenger ? interaction.member : await interaction.guild.members.fetch(winner.id), userData);
+          
           await setEconomyData(client, interaction.guildId, winner.id, userData);
       } catch (err) {
           logger.error(`Failed to track fight win for ${winner.id}:`, err);

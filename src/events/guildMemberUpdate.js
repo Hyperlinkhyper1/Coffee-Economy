@@ -2,6 +2,7 @@ import { Events } from 'discord.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
+import { checkAndAnnounceAchievements } from '../config/achievements.js';
 
 export default {
   name: Events.GuildMemberUpdate,
@@ -67,6 +68,9 @@ async function handleBoostTracking(oldMember, newMember) {
         userData.stats = { messages: 0, reactions: 0, voiceMinutes: 0, isBoosting: false };
       }
       userData.stats.isBoosting = isBoosting;
+
+      await checkAndAnnounceAchievements(newMember.client, newMember.guild, newMember, userData);
+
       await setEconomyData(newMember.client, newMember.guild.id, newMember.user.id, userData);
     }
   } catch (error) {
