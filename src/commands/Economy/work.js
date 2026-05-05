@@ -22,7 +22,39 @@ export default {
             subcommand
                 .setName('select')
                 .setDescription('Select a new job to work at')
+                .addStringOption(option =>
+                    option.setName('job')
+                        .setDescription('The job you want to select')
+                        .setRequired(false)
+                        .setAutocomplete(true)
+                )
         ),
+
+    async autocomplete(interaction) {
+        const focusedValue = interaction.options.getFocused().toLowerCase();
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+        const client = interaction.client;
+
+        const userData = await getEconomyData(client, guildId, userId);
+        const shifts = userData?.shifts || 0;
+
+        const choices = JOBS.map(job => ({
+            name: `${job.emoji} ${job.name} (${job.shiftsRequired} shifts required)`,
+            value: job.id,
+            shiftsRequired: job.shiftsRequired
+        }));
+
+        const filtered = choices.filter(choice => {
+            const matchesSearch = choice.name.toLowerCase().includes(focusedValue);
+            const isUnlocked = shifts >= choice.shiftsRequired;
+            return matchesSearch && isUnlocked;
+        });
+
+        await interaction.respond(
+            filtered.slice(0, 25).map(choice => ({ name: choice.name, value: choice.value }))
+        ).catch(() => {});
+    },
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const subcommand = interaction.options.getSubcommand();
@@ -42,6 +74,39 @@ export default {
         }
 
         if (subcommand === 'select') {
+            const jobOption = interaction.options.getString('job');
+
+            if (jobOption) {
+                const deferred = await InteractionHelper.safeDefer(interaction);
+                if (!deferred) return;
+
+                const job = getJob(jobOption);
+                const shifts = userData.shifts || 0;
+
+                if (shifts < job.shiftsRequired) {
+                    throw createError(
+                        "Job Locked",
+                        ErrorTypes.VALIDATION,
+                        `You need **${job.shiftsRequired}** total shifts to unlock the **${job.name}** job. You currently have **${shifts}** shifts.`,
+                        { jobId: job.id, shiftsRequired: job.shiftsRequired, currentShifts: shifts }
+                    );
+                }
+
+                userData.job = job.id;
+                await setEconomyData(client, guildId, userId, userData);
+
+                const embed = successEmbed(
+                    "💼 Job Updated",
+                    `You are now working as a **${job.name}** ${job.emoji}!\n` +
+                    `└ Pay: $${job.minPay}-$${job.maxPay} per shift.`
+                );
+
+                return await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [embed],
+                    components: []
+                });
+            }
+
             const deferred = await InteractionHelper.safeDefer(interaction);
             if (!deferred) return;
 
