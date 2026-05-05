@@ -166,6 +166,9 @@ export default {
                     else userData[statKey] = next.value;
                 }
 
+                // Check for announcements after manual progress
+                await checkAndAnnounceAchievements(client, interaction.guild, targetUser, userData);
+
                 await setEconomyData(client, guildId, targetUser.id, userData);
                 const embed = successEmbed(`Successfully progressed **${achievement.name}** for **${targetUser.username}**.`);
                 await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
