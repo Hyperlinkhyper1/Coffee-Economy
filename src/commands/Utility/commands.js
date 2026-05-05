@@ -20,7 +20,8 @@ export default {
 
         const initialDisplay = getCategoryDisplay(CATEGORIES.OVERVIEW);
         const response = await InteractionHelper.safeEditReply(interaction, {
-            ...initialDisplay,
+            embeds: initialDisplay.embeds,
+            components: initialDisplay.components,
             fetchReply: true
         });
 
@@ -33,7 +34,11 @@ export default {
 
         collector.on('collect', async i => {
             const category = i.customId.replace('cmd_cat_', '');
-            await i.update(getCategoryDisplay(category));
+            const display = getCategoryDisplay(category);
+            await i.update({
+                embeds: display.embeds,
+                components: display.components
+            });
         });
 
         collector.on('end', () => {
@@ -110,25 +115,25 @@ function getCategoryDisplay(category) {
             .setCustomId(`cmd_cat_${CATEGORIES.OVERVIEW}`)
             .setLabel('Home')
             .setEmoji('🏠')
-            .setStyle(ButtonStyle.Secondary)
+            .setStyle(2) // Secondary
             .setDisabled(category === CATEGORIES.OVERVIEW),
         new ButtonBuilder()
             .setCustomId(`cmd_cat_${CATEGORIES.STATS}`)
             .setLabel('Stats')
             .setEmoji('📊')
-            .setStyle(ButtonStyle.Primary)
+            .setStyle(1) // Primary
             .setDisabled(category === CATEGORIES.STATS),
         new ButtonBuilder()
             .setCustomId(`cmd_cat_${CATEGORIES.GAMES}`)
             .setLabel('Games')
             .setEmoji('🎮')
-            .setStyle(ButtonStyle.Success)
+            .setStyle(3) // Success
             .setDisabled(category === CATEGORIES.GAMES),
         new ButtonBuilder()
             .setCustomId(`cmd_cat_${CATEGORIES.ECONOMY}`)
             .setLabel('Economy')
             .setEmoji('💰')
-            .setStyle(ButtonStyle.Warning)
+            .setStyle(1) // Primary
             .setDisabled(category === CATEGORIES.ECONOMY)
     );
 
