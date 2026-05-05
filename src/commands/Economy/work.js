@@ -72,7 +72,7 @@ export default {
 
                 const embed = infoEmbed(
                     "💼 Available Jobs",
-                    `You currently have **${shifts}** total shifts.\n\n` +
+                    `Total Jobs: **${JOBS.length}** • Your Shifts: **${shifts}**\n\n` +
                     pageJobs.map(j => {
                         const isUnlocked = shifts >= j.shiftsRequired;
                         const status = isUnlocked ? "Unlocked" : `${j.shiftsRequired} shifts`;
