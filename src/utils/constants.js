@@ -28,7 +28,13 @@ export const DEFAULT_ECONOMY_DATA = {
     job: 'Janitor',
     inventory: {},
     upgrades: {},
-    cooldowns: {}
+    cooldowns: {},
+    stats: {
+        messages: 0,
+        reactions: 0,
+        voiceMinutes: 0,
+        isBoosting: false
+    }
 };
 
 

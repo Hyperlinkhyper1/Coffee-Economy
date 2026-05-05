@@ -83,7 +83,18 @@ export const EconomyDataSchema = z
     xp: z.number().int().nonnegative().default(0),
     level: z.number().int().nonnegative().default(1),
     inventory: z.record(z.any()).default({}),
-    cooldowns: z.record(z.number().int().nonnegative()).default({})
+    cooldowns: z.record(z.number().int().nonnegative()).default({}),
+    stats: z.object({
+        messages: z.number().int().nonnegative().default(0),
+        reactions: z.number().int().nonnegative().default(0),
+        voiceMinutes: z.number().int().nonnegative().default(0),
+        isBoosting: z.boolean().default(false)
+    }).default({
+        messages: 0,
+        reactions: 0,
+        voiceMinutes: 0,
+        isBoosting: false
+    })
   })
   .passthrough();
 

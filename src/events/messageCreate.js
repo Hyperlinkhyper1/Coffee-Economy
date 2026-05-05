@@ -8,6 +8,7 @@ import { logger } from '../utils/logger.js';
 import { getLevelingConfig, getUserLevelData } from '../services/leveling.js';
 import { addXp } from '../services/xpSystem.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
+import { getEconomyData, setEconomyData } from '../utils/economy.js';
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -19,12 +20,26 @@ export default {
       
       if (message.author.bot || !message.guild) return;
 
+      await handleStatsTracking(message, client);
       await handleLeveling(message, client);
     } catch (error) {
       logger.error('Error in messageCreate event:', error);
     }
   }
 };
+
+async function handleStatsTracking(message, client) {
+  try {
+    const userData = await getEconomyData(client, message.guild.id, message.author.id);
+    if (!userData.stats) {
+      userData.stats = { messages: 0, reactions: 0, voiceMinutes: 0, isBoosting: false };
+    }
+    userData.stats.messages = (userData.stats.messages || 0) + 1;
+    await setEconomyData(client, message.guild.id, message.author.id, userData);
+  } catch (error) {
+    logger.error('Error tracking message stats:', error);
+  }
+}
 
 
 

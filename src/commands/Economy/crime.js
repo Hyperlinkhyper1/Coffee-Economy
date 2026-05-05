@@ -102,7 +102,7 @@ export default {
                 
                 await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
             } else {
-                const fine = Math.floor(amountEarned * 0.2);
+                const fine = Math.floor((userData.wallet || 0) * 0.1);
                 userData.wallet = Math.max(0, (userData.wallet || 0) - fine);
                 userData.jailedUntil = now + JAIL_TIME;
                 
@@ -110,8 +110,8 @@ export default {
                 
                 const embed = errorEmbed(
                     "Crime Failed!",
-                    `You were caught while attempting ${crime.name} and have been sent to jail! ` +
-                    `You were fined ${fine} coins and will be in jail for 2 hours.`
+                    `You were caught while attempting **${crime.name}** and have been sent to jail for 2 hours!\n` +
+                    `You were fined **$${fine.toLocaleString()}** (10% of your wallet).`
                 );
                 
                 await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });

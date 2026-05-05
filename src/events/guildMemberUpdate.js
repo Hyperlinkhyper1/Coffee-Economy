@@ -1,6 +1,7 @@
 import { Events } from 'discord.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
+import { getEconomyData, setEconomyData } from '../utils/economy.js';
 
 export default {
   name: Events.GuildMemberUpdate,
@@ -9,6 +10,8 @@ export default {
   async execute(oldMember, newMember) {
     try {
       if (!newMember.guild) return;
+
+      await handleBoostTracking(oldMember, newMember);
 
       const fields = [];
 
@@ -52,3 +55,21 @@ export default {
     }
   }
 };
+
+async function handleBoostTracking(oldMember, newMember) {
+  try {
+    const isBoosting = !!newMember.premiumSince;
+    const wasBoosting = !!oldMember.premiumSince;
+
+    if (isBoosting !== wasBoosting) {
+      const userData = await getEconomyData(newMember.client, newMember.guild.id, newMember.user.id);
+      if (!userData.stats) {
+        userData.stats = { messages: 0, reactions: 0, voiceMinutes: 0, isBoosting: false };
+      }
+      userData.stats.isBoosting = isBoosting;
+      await setEconomyData(newMember.client, newMember.guild.id, newMember.user.id, userData);
+    }
+  } catch (error) {
+    logger.error('Error tracking boost stats:', error);
+  }
+}
