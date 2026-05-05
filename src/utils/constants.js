@@ -25,8 +25,8 @@ export const DEFAULT_ECONOMY_DATA = {
     lastDeposit: 0,
     lastWithdraw: 0,
     lastMastermind: 0,
+    lastHangman: 0,
     shifts: 0,
-    job: 'Janitor',
     inventory: {},
     upgrades: {},
     cooldowns: {},
@@ -37,7 +37,8 @@ export const DEFAULT_ECONOMY_DATA = {
         voiceMinutes: 0,
         isBoosting: false,
         fightsWon: 0,
-        mastermindWins: 0
+        mastermindWins: 0,
+        hangmanWins: 0
     }
 };
 

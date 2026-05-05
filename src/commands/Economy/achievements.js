@@ -86,7 +86,7 @@ export default {
 
             const embed = createEmbed({
                 title: `🏆 ${targetUser.username}'s Achievements`,
-                description: `Track your progress and unlock legendary ranks!\n\n${medalSummary ? `🏅 **Medals Earned:** ${medalSummary}\n\n` : ''}`,
+                description: `Track your progress and unlock legendary ranks!`,
                 color: 'economy'
             }).setThumbnail(targetUser.displayAvatarURL());
 
@@ -114,6 +114,14 @@ export default {
                 });
             });
 
+            if (medalSummary) {
+                embed.addFields({
+                    name: '🏅 Medals Earned',
+                    value: medalSummary,
+                    inline: false
+                });
+            }
+
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         } 
         
@@ -136,7 +144,15 @@ export default {
 
             const userData = await getEconomyData(client, guildId, targetUser.id);
             if (!userData.stats) {
-                userData.stats = { messages: 0, reactions: 0, voiceMinutes: 0, isBoosting: false, fightsWon: 0 };
+                userData.stats = { 
+                    messages: 0, 
+                    reactions: 0, 
+                    voiceMinutes: 0, 
+                    isBoosting: false, 
+                    fightsWon: 0,
+                    mastermindWins: 0,
+                    hangmanWins: 0
+                };
             }
 
             const statKey = achievement.statKey;
