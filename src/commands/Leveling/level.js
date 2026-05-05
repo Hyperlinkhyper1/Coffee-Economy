@@ -6,45 +6,25 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('level')
-        .setDescription('Check your level or the leaderboard')
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('user')
-                .setDescription('Check a user\'s level')
-                .addUserOption(option => 
-                    option.setName('target')
-                        .setDescription('The user to check')
-                        .setRequired(false)
-                )
-        )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('leaderboard')
-                .setDescription('Show the top 15 users with the highest level')
+        .setDescription('Check your level or another user\'s level')
+        .addUserOption(option => 
+            option.setName('target')
+                .setDescription('The user to check')
+                .setRequired(false)
         ),
 
     execute: withErrorHandling(async (interaction, config, client) => {
-        const subcommand = interaction.options.getSubcommand();
+        await InteractionHelper.safeDefer(interaction);
+        
+        const targetUser = interaction.options.getUser('target') || interaction.user;
         const guildId = interaction.guildId;
-
-        if (subcommand === 'user') {
-            await InteractionHelper.safeDefer(interaction);
-            const target = interaction.options.getUser('target') || interaction.user;
-            const userData = await getUserLevelData(client, guildId, target.id);
-            
-            await InteractionHelper.safeEditReply(interaction, {
-                content: `${target.username} level is currently ${userData.level}`
-            });
-        }
-
-        if (subcommand === 'leaderboard') {
-            await InteractionHelper.safeDefer(interaction);
-            const leaderboard = await getLeaderboard(client, guildId, 15);
-            const embed = createLeaderboardEmbed(leaderboard, interaction.guild);
-            
-            await InteractionHelper.safeEditReply(interaction, {
-                embeds: [embed]
-            });
-        }
+        
+        const userData = await getUserLevelData(client, guildId, targetUser.id);
+        
+        await InteractionHelper.safeEditReply(interaction, {
+            content: `${targetUser.username} level is currently ${userData.level}`
+        });
     }, { command: 'level' })
 };
+
+
