@@ -56,8 +56,9 @@ export default {
             "• Select 4 colors in order.\n" +
             "• A color can be selected more than once.\n" +
             "• Feedback:\n" +
-            "  🔴 = Correct color and correct position\n" +
-            "  ⚪ = Correct color but wrong position\n\n" +
+            "  ✅ = Correct color and correct position\n" +
+            "  ☑️ = Correct color but wrong position\n" +
+            "  ❌ = Wrong color\n\n" +
             `**Cost:** $${COST} | **Reward:** $${REWARD}\n` +
             "Click **Start** below to begin!",
             `🎮 Mastermind - ${interaction.user.username}`
@@ -107,9 +108,10 @@ export default {
                     const result = evaluateGuess(secretCode, currentGuess);
                     guesses.push([...currentGuess]);
                     feedback.push(result);
+                    const perfectMatches = result.filter(r => r === '✅').length;
                     currentGuess = [];
 
-                    if (result.perfect === 4) {
+                    if (perfectMatches === 4) {
                         gameState = 'won';
                     } else if (guesses.length >= TRIES) {
                         gameState = 'lost';
@@ -144,33 +146,31 @@ export default {
 };
 
 function evaluateGuess(secret, guess) {
-    let perfect = 0;
-    let partial = 0;
-    
+    const results = Array(4).fill('❌');
     const secretCopy = [...secret];
     const guessCopy = [...guess];
 
-    // Find perfect matches
+    // First pass: Find perfect matches (correct color + position)
     for (let i = 0; i < 4; i++) {
         if (guessCopy[i] === secretCopy[i]) {
-            perfect++;
+            results[i] = '✅';
             secretCopy[i] = null;
             guessCopy[i] = null;
         }
     }
 
-    // Find partial matches
+    // Second pass: Find partial matches (correct color + wrong position)
     for (let i = 0; i < 4; i++) {
         if (guessCopy[i] !== null) {
             const index = secretCopy.indexOf(guessCopy[i]);
             if (index !== -1) {
-                partial++;
+                results[i] = '☑️';
                 secretCopy[index] = null;
             }
         }
     }
 
-    return { perfect, partial };
+    return results;
 }
 
 function updateGameDisplay(interaction, guesses, currentGuess, feedback, won, secretCode = null) {
@@ -179,8 +179,8 @@ function updateGameDisplay(interaction, guesses, currentGuess, feedback, won, se
     // Show history
     for (let i = 0; i < guesses.length; i++) {
         const guessEmojis = guesses[i].map(id => COLORS.find(c => c.id === id).emoji).join(' ');
-        const fb = '🔴 '.repeat(feedback[i].perfect) + '⚪ '.repeat(feedback[i].partial);
-        description += `${guessEmojis} ➔ ${fb || '❌'}\n`;
+        const fb = feedback[i].join(' ');
+        description += `${guessEmojis} ➔ ${fb}\n`;
     }
 
     // Show current progress
