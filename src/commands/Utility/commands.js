@@ -100,6 +100,7 @@ function getCategoryDisplay(category) {
                 { name: '`/give`', value: 'Give an item from your inventory to someone' },
                 { name: '`/rob`', value: 'Attempt to steal money from another user' },
                 { name: '`/redeem`', value: 'Redeem special codes for rewards' },
+                { name: '`/codes list`', value: 'View all available reward codes' },
                 { name: '`/lottery`', value: 'Join the server-wide hourly lottery' }
             ];
             break;

@@ -60,7 +60,7 @@ export default {
             item, // Placeholder for now as shop is empty
             creatorId: interaction.user.id,
             createdAt: Date.now(),
-            redeemed: false
+            redeemedBy: []
         };
 
         await client.db.set(codeKey, codeData);

@@ -32,16 +32,25 @@ export default {
             );
         }
 
-        if (codeData.redeemed) {
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+
+        if (!codeData.redeemedBy) {
+            codeData.redeemedBy = [];
+            // Migration for old codes
+            if (codeData.redeemed && codeData.redeemerId) {
+                codeData.redeemedBy.push(codeData.redeemerId);
+            }
+        }
+
+        if (codeData.redeemedBy.includes(userId)) {
             throw createError(
                 "Code Already Redeemed",
                 ErrorTypes.VALIDATION,
-                `The code \`${code}\` has already been used.`
+                `You have already used the code \`${code}\`.`
             );
         }
 
-        const userId = interaction.user.id;
-        const guildId = interaction.guildId;
         const rewards = [];
 
         // Load user data once if needed for items
@@ -80,9 +89,8 @@ export default {
         }
 
         // Mark as redeemed
-        codeData.redeemed = true;
-        codeData.redeemerId = userId;
-        codeData.redeemedAt = Date.now();
+        codeData.redeemedBy.push(userId);
+        codeData.redeemed = true; // Still keep this for backward compatibility or general status
         await client.db.set(codeKey, codeData);
 
         logger.info(`[ECONOMY] Code redeemed: ${code} by ${userId} in guild ${guildId}`);
