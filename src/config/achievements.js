@@ -95,6 +95,21 @@ export const ACHIEVEMENTS = [
             { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 150 },
             { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 250 }
         ]
+    },
+    {
+        id: 'mastermind',
+        name: 'Mastermind Master',
+        description: 'Win games of Mastermind.',
+        type: 'stat',
+        statKey: 'mastermindWins',
+        thresholds: [
+            { level: ACHIEVEMENT_LEVELS.BRONZE, value: 3 },
+            { level: ACHIEVEMENT_LEVELS.SILVER, value: 8 },
+            { level: ACHIEVEMENT_LEVELS.GOLD, value: 15 },
+            { level: ACHIEVEMENT_LEVELS.PLATINUM, value: 25 },
+            { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 50 },
+            { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 100 }
+        ]
     }
 ];
 

@@ -24,6 +24,7 @@ export const DEFAULT_ECONOMY_DATA = {
     lastWeekly: 0,
     lastDeposit: 0,
     lastWithdraw: 0,
+    lastMastermind: 0,
     shifts: 0,
     job: 'Janitor',
     inventory: {},
@@ -35,7 +36,8 @@ export const DEFAULT_ECONOMY_DATA = {
         reactions: 0,
         voiceMinutes: 0,
         isBoosting: false,
-        fightsWon: 0
+        fightsWon: 0,
+        mastermindWins: 0
     }
 };
 
