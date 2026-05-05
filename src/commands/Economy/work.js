@@ -1,52 +1,94 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { JOBS, getJob, getUnlockedJobs } from '../../utils/jobs.js';
 
 const WORK_COOLDOWN = 30 * 60 * 1000;
-const MIN_WORK_AMOUNT = 50;
-const MAX_WORK_AMOUNT = 300;
 const LAPTOP_MULTIPLIER = 1.5;
-const WORK_JOBS = [
-    "Software Developer",
-    "Barista",
-    "Janitor",
-    "YouTuber",
-    "Discord Bot Developer",
-    "Cashier",
-    "Pizza Delivery Driver",
-    "Librarian",
-    "Gardener",
-    "Data Analyst",
-];
 
 export default {
     data: new SlashCommandBuilder()
         .setName('work')
-        .setDescription('Work to earn some money'),
+        .setDescription('Work to earn some money')
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('shift')
+                .setDescription('Start a work shift with your current job')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('select')
+                .setDescription('Select a new job to work at')
+        ),
 
     execute: withErrorHandling(async (interaction, config, client) => {
-        const deferred = await InteractionHelper.safeDefer(interaction);
-        if (!deferred) return;
-            
-            const userId = interaction.user.id;
-            const guildId = interaction.guildId;
-            const now = Date.now();
+        const subcommand = interaction.options.getSubcommand();
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+        const now = Date.now();
 
-            const userData = await getEconomyData(client, guildId, userId);
+        const userData = await getEconomyData(client, guildId, userId);
 
-            if (!userData) {
-                throw createError(
-                    "Failed to load economy data for work",
-                    ErrorTypes.DATABASE,
-                    "Failed to load your economy data. Please try again later.",
-                    { userId, guildId }
+        if (!userData) {
+            throw createError(
+                "Failed to load economy data for work",
+                ErrorTypes.DATABASE,
+                "Failed to load your economy data. Please try again later.",
+                { userId, guildId }
+            );
+        }
+
+        if (subcommand === 'select') {
+            const deferred = await InteractionHelper.safeDefer(interaction);
+            if (!deferred) return;
+
+            const shifts = userData.shifts || 0;
+            const currentJobId = userData.job || 'janitor';
+            const unlockedJobs = getUnlockedJobs(shifts);
+
+            const embed = infoEmbed(
+                "💼 Job Selection",
+                `Select a job you'd like to work at. You currently have **${shifts}** total shifts.\n\n` +
+                JOBS.map(j => {
+                    const isUnlocked = shifts >= j.shiftsRequired;
+                    const isCurrent = j.id === currentJobId;
+                    return `${j.emoji} **${j.name}** ${isCurrent ? "*(Current)*" : ""}\n` +
+                           `└ Pay: $${j.minPay}-$${j.maxPay} | ${isUnlocked ? "✅ Unlocked" : `🔒 Locked (${j.shiftsRequired} shifts required)`}`;
+                }).join('\n\n')
+            );
+
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('job_select')
+                .setPlaceholder('Choose your job...')
+                .addOptions(
+                    JOBS.map(j => {
+                        const isUnlocked = shifts >= j.shiftsRequired;
+                        return new StringSelectMenuOptionBuilder()
+                            .setLabel(j.name)
+                            .setDescription(j.description)
+                            .setValue(j.id)
+                            .setEmoji(j.emoji)
+                            .setDefault(j.id === currentJobId)
+                            .setDisabled(!isUnlocked);
+                    })
                 );
-            }
 
-            logger.debug(`[ECONOMY] Work command started for ${userId}`, { userId, guildId });
+            const row = new ActionRowBuilder().addComponents(selectMenu);
+
+            return await InteractionHelper.safeEditReply(interaction, {
+                embeds: [embed],
+                components: [row]
+            });
+        }
+
+        if (subcommand === 'shift') {
+            const deferred = await InteractionHelper.safeDefer(interaction);
+            if (!deferred) return;
+
+            logger.debug(`[ECONOMY] Work shift started for ${userId}`, { userId, guildId });
 
             const lastWork = userData.lastWork || 0;
             const inventory = userData.inventory || {};
@@ -71,9 +113,10 @@ export default {
                 }
             }
 
-            let earned = Math.floor(Math.random() * (MAX_WORK_AMOUNT - MIN_WORK_AMOUNT + 1)) + MIN_WORK_AMOUNT;
-            const job = WORK_JOBS[Math.floor(Math.random() * WORK_JOBS.length)];
-
+            const currentJobId = userData.job || 'janitor';
+            const job = getJob(currentJobId);
+            
+            let earned = Math.floor(Math.random() * (job.maxPay - job.minPay + 1)) + job.minPay;
             
             let multiplierMessage = "";
             if (hasLaptop > 0) {
@@ -83,14 +126,16 @@ export default {
 
             userData.wallet = (userData.wallet || 0) + earned;
             userData.lastWork = now;
+            userData.shifts = (userData.shifts || 0) + 1;
 
             await setEconomyData(client, guildId, userId, userData);
 
-            logger.info(`[ECONOMY_TRANSACTION] Work completed`, {
+            logger.info(`[ECONOMY_TRANSACTION] Work shift completed`, {
                 userId,
                 guildId,
                 amount: earned,
-                job,
+                job: job.name,
+                shifts: userData.shifts,
                 usedConsumable,
                 hasLaptop: hasLaptop > 0,
                 newWallet: userData.wallet,
@@ -98,8 +143,8 @@ export default {
             });
 
             const embed = successEmbed(
-                "💼 Work Complete!",
-                `You worked as a **${job}** and earned **$${earned.toLocaleString()}**!${multiplierMessage}`
+                "💼 Shift Complete!",
+                `You worked as a **${job.name}** and earned **$${earned.toLocaleString()}**!${multiplierMessage}`
             )
                 .addFields(
                     {
@@ -108,7 +153,12 @@ export default {
                         inline: true,
                     },
                     {
-                        name: "⏰ Next Work",
+                        name: "📈 Total Shifts",
+                        value: `${userData.shifts}`,
+                        inline: true,
+                    },
+                    {
+                        name: "⏰ Next Shift",
                         value: `<t:${Math.floor((now + WORK_COOLDOWN) / 1000)}:R>`,
                         inline: true,
                     }
@@ -119,8 +169,10 @@ export default {
                 });
 
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        }
     }, { command: 'work' })
 };
+
 
 
 

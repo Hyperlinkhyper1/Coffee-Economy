@@ -24,6 +24,8 @@ export const DEFAULT_ECONOMY_DATA = {
     lastWeekly: 0,
     lastDeposit: 0,
     lastWithdraw: 0,
+    shifts: 0,
+    job: 'Janitor',
     inventory: {},
     upgrades: {},
     cooldowns: {}
