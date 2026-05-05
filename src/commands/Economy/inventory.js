@@ -49,8 +49,8 @@ export default {
                         ([itemId, quantity]) => {
                             const item = SHOP_ITEMS.find(i => i.id === itemId);
                             const rarityText = item.rarity ? ` [[1;35m${item.rarity}[0m]` : "";
-                            // [1;37m is white, [1;35m is magenta (pink)
-                            return `[1;37m${item.name}:[0m ${quantity}x${rarityText}`;
+                            // [1;37m = Bold White, [1;35m = Bold Pink/Magenta
+                            return `[1;37m${item.name}:[0m [1;37m${quantity}x[0m${rarityText}`;
                         }
                     );
                 
