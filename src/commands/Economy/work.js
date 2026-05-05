@@ -28,6 +28,11 @@ export default {
                         .setRequired(false)
                         .setAutocomplete(true)
                 )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('list')
+                .setDescription('View all available jobs and their requirements')
         ),
 
     async autocomplete(interaction) {
@@ -71,6 +76,26 @@ export default {
                 "Failed to load your economy data. Please try again later.",
                 { userId, guildId }
             );
+        }
+
+        if (subcommand === 'list') {
+            const deferred = await InteractionHelper.safeDefer(interaction);
+            if (!deferred) return;
+
+            const shifts = userData.shifts || 0;
+
+            const embed = infoEmbed(
+                "💼 Available Jobs",
+                `Here are all the jobs you can unlock and work at. You currently have **${shifts}** total shifts.\n\n` +
+                JOBS.map(j => {
+                    const isUnlocked = shifts >= j.shiftsRequired;
+                    return `${j.emoji} **${j.name}**\n` +
+                           `└ Pay: $${j.minPay}-$${j.maxPay}\n` +
+                           `└ Requirement: ${isUnlocked ? "✅" : "🔒"} ${j.shiftsRequired} shifts`;
+                }).join('\n\n')
+            );
+
+            return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         }
 
         if (subcommand === 'select') {

@@ -5,6 +5,7 @@ export const shopItems = [
         description: 'A legendary card given to those who were here before the 20K milestone.',
         type: 'collectible',
         purchasable: false,
+        rarity: 'Limited',
         emoji: '💳'
     }
 ];

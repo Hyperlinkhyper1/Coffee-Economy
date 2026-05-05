@@ -48,7 +48,12 @@ export default {
                     .map(
                         ([itemId, quantity]) => {
                             const item = SHOP_ITEMS.find(i => i.id === itemId);
-                            return `**${item.name}:** ${quantity}x`;
+                            let itemText = `**${item.name}:** ${quantity}x`;
+                            if (item.rarity) {
+                                // [1;35m is bright magenta, which is the closest to sakura pink in ANSI
+                                itemText += ` [\`[1;35m${item.rarity}[0m\`]`;
+                            }
+                            return itemText;
                         }
                     )
                     .join("\n");
