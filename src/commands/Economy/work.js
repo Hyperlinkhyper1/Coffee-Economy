@@ -86,12 +86,14 @@ export default {
 
             const embed = infoEmbed(
                 "💼 Available Jobs",
-                `Here are all the jobs you can unlock and work at. You currently have **${shifts}** total shifts.\n\n` +
+                `You currently have **${shifts}** total shifts.\n\n` +
                 JOBS.map(j => {
                     const isUnlocked = shifts >= j.shiftsRequired;
+                    const status = isUnlocked ? "Unlocked" : `${j.shiftsRequired} shifts`;
+                    const statusIcon = isUnlocked ? "✅" : "🔒";
+                    
                     return `${j.emoji} **${j.name}**\n` +
-                           `└ Pay: $${j.minPay}-$${j.maxPay}\n` +
-                           `└ Requirement: ${isUnlocked ? "✅" : "🔒"} ${j.shiftsRequired} shifts`;
+                           `\`Pay: $${j.minPay}-$${j.maxPay}\` • \`${statusIcon} ${status}\``;
                 }).join('\n\n')
             );
 

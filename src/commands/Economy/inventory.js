@@ -38,7 +38,7 @@ export default {
             let inventoryDescription = "Your inventory is currently empty.";
 
             if (Object.keys(inventory).length > 0) {
-                inventoryDescription = Object.entries(inventory)
+                const inventoryLines = Object.entries(inventory)
                     .filter(
                         ([itemId, quantity]) => {
                             const item = SHOP_ITEMS.find(i => i.id === itemId);
@@ -48,15 +48,13 @@ export default {
                     .map(
                         ([itemId, quantity]) => {
                             const item = SHOP_ITEMS.find(i => i.id === itemId);
-                            let itemText = `**${item.name}:** ${quantity}x`;
-                            if (item.rarity) {
-                                // [1;35m is bright magenta, which is the closest to sakura pink in ANSI
-                                itemText += ` [\`[1;35m${item.rarity}[0m\`]`;
-                            }
-                            return itemText;
+                            const rarityText = item.rarity ? ` [[1;35m${item.rarity}[0m]` : "";
+                            // [1;37m is white, [1;35m is magenta (pink)
+                            return `[1;37m${item.name}:[0m ${quantity}x${rarityText}`;
                         }
-                    )
-                    .join("\n");
+                    );
+                
+                inventoryDescription = "```ansi\n" + inventoryLines.join("\n") + "\n```";
             }
 
             logger.info(`[ECONOMY] Inventory retrieved`, { 
