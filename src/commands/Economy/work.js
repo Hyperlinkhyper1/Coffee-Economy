@@ -107,7 +107,8 @@ export default {
 
             const response = await InteractionHelper.safeEditReply(interaction, {
                 embeds: [createJobsEmbed(currentPage)],
-                components: [createButtons(currentPage)]
+                components: [createButtons(currentPage)],
+                fetchReply: true
             });
 
             if (!response) return;

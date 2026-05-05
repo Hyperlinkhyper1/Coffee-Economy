@@ -137,6 +137,9 @@ if (error.code === 10062) {
             }
             
             await interaction.editReply(sanitizeEditReplyOptions(options));
+            if (options.fetchReply) {
+                return await interaction.fetchReply();
+            }
             return true;
         } catch (error) {
 if (error.code === 10062) {
