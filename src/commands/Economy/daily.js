@@ -7,14 +7,14 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
+const DAILY_COOLDOWN = 18 * 60 * 60 * 1000;
 const DAILY_AMOUNT = 1000;
 const PREMIUM_BONUS_PERCENTAGE = 0.1;
 
 export default {
     data: new SlashCommandBuilder()
         .setName('daily')
-        .setDescription('Claim your daily cash reward'),
+        .setDescription('Claim your cash reward (Every 18 hours)'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -50,8 +50,8 @@ export default {
                 );
             }
 
-            // Check streak: If last claim was between 24h and 48h ago, increment streak.
-            // If more than 48h ago, reset streak to 1.
+            // Check streak: If last claim was between 18h and 36h ago, increment streak.
+            // If more than 36h ago, reset streak to 1.
             let newStreak = 1;
             if (lastDaily > 0) {
                 const diff = now - lastDaily;
@@ -114,8 +114,8 @@ export default {
                 )
                 .setFooter({
                     text: hasPremiumRole
-                        ? `Next claim in 24 hours. (Premium Active)`
-                        : `Next claim in 24 hours.`,
+                        ? `Next claim in 18 hours. (Premium Active)`
+                        : `Next claim in 18 hours.`,
                 });
 
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
