@@ -38,6 +38,7 @@ export default {
             }
             
             const lastDaily = userData.lastDaily || 0;
+            const streak = userData.dailyStreak || 0;
 
             if (now < lastDaily + DAILY_COOLDOWN) {
                 const timeRemaining = lastDaily + DAILY_COOLDOWN - now;
@@ -47,6 +48,16 @@ export default {
                     `You need to wait before claiming daily again. Try again in **${formatDuration(timeRemaining)}**.`,
                     { timeRemaining, cooldownType: 'daily' }
                 );
+            }
+
+            // Check streak: If last claim was between 24h and 48h ago, increment streak.
+            // If more than 48h ago, reset streak to 1.
+            let newStreak = 1;
+            if (lastDaily > 0) {
+                const diff = now - lastDaily;
+                if (diff < (DAILY_COOLDOWN * 2)) {
+                    newStreak = streak + 1;
+                }
             }
 
             const guildConfig = await getGuildConfig(client, guildId);
@@ -71,6 +82,7 @@ export default {
 
             userData.wallet = (userData.wallet || 0) + earned;
             userData.lastDaily = now;
+            userData.dailyStreak = newStreak;
 
             await setEconomyData(client, guildId, userId, userData);
 
@@ -79,6 +91,7 @@ export default {
                 guildId,
                 amount: earned,
                 newWallet: userData.wallet,
+                streak: newStreak,
                 hasPremium: hasPremiumRole,
                 timestamp: new Date().toISOString()
             });
@@ -87,11 +100,18 @@ export default {
                 "✅ Daily Claimed!",
                 `You have claimed your daily **$${earned.toLocaleString()}**!${bonusMessage}`
             )
-                .addFields({
-                    name: "New Cash Balance",
-                    value: `$${userData.wallet.toLocaleString()}`,
-                    inline: true,
-                })
+                .addFields(
+                    {
+                        name: "New Cash Balance",
+                        value: `$${userData.wallet.toLocaleString()}`,
+                        inline: true,
+                    },
+                    {
+                        name: "Daily Streak",
+                        value: `🔥 **${newStreak}** days`,
+                        inline: true,
+                    }
+                )
                 .setFooter({
                     text: hasPremiumRole
                         ? `Next claim in 24 hours. (Premium Active)`

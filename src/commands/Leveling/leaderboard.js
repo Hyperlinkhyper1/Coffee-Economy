@@ -18,6 +18,11 @@ export default {
             subcommand
                 .setName('economy')
                 .setDescription('View the server\'s top richest users')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('daily')
+                .setDescription('View the top 15 users with the highest daily streak')
         ),
 
     execute: withErrorHandling(async (interaction, config, client) => {
@@ -31,7 +36,7 @@ export default {
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         }
 
-        if (subcommand === 'economy') {
+        else if (subcommand === 'economy' || subcommand === 'daily') {
             await InteractionHelper.safeDefer(interaction);
             
             const prefix = `economy:${guildId}:`;
@@ -39,7 +44,7 @@ export default {
             if (!Array.isArray(allKeys)) allKeys = [];
 
             if (allKeys.length === 0) {
-                throw createError("No economy data found", ErrorTypes.VALIDATION, "No economy data found for this server.");
+                throw createError("No data found", ErrorTypes.VALIDATION, "No data found for this server.");
             }
 
             let allUserData = [];
@@ -47,25 +52,35 @@ export default {
                 const userId = key.replace(prefix, "");
                 const userData = await client.db.get(key);
                 if (userData) {
-                    allUserData.push({
-                        userId: userId,
-                        net_worth: (userData.wallet || 0) + (userData.bank || 0),
-                    });
+                    if (subcommand === 'economy') {
+                        allUserData.push({
+                            userId: userId,
+                            value: (userData.wallet || 0) + (userData.bank || 0),
+                        });
+                    } else {
+                        allUserData.push({
+                            userId: userId,
+                            value: userData.dailyStreak || 0,
+                        });
+                    }
                 }
             }
 
-            allUserData.sort((a, b) => b.net_worth - a.net_worth);
+            allUserData.sort((a, b) => b.value - a.value);
             const topUsers = allUserData.slice(0, 15);
             const userRank = allUserData.findIndex((u) => u.userId === interaction.user.id) + 1;
             const rankEmoji = ["🥇", "🥈", "🥉"];
             
             const leaderboardEntries = topUsers.map((user, i) => {
                 const emoji = rankEmoji[i] || `**#${i + 1}**`;
-                return `${emoji} <@${user.userId}> - 🏦 $${user.net_worth.toLocaleString()}`;
+                const displayValue = subcommand === 'economy' 
+                    ? `🏦 $${user.value.toLocaleString()}`
+                    : `🔥 ${user.value.toLocaleString()} days`;
+                return `${emoji} <@${user.userId}> - ${displayValue}`;
             });
 
             const embed = createEmbed({
-                title: `Economy Leaderboard`,
+                title: subcommand === 'economy' ? `Economy Leaderboard` : `Daily Streak Leaderboard`,
                 description: leaderboardEntries.length > 0 ? leaderboardEntries.join("\n") : "No data available.",
                 footer: `Your Rank: ${userRank > 0 ? `#${userRank}` : "No ranking data available"}`,
             });

@@ -92,13 +92,13 @@ function getCategoryDisplay(category) {
             color = 'economy';
             fields = [
                 { name: '`/work`', value: 'Work a shift at your job to earn money' },
+                { name: '`/daily`', value: 'Claim your daily cash reward and build a streak' },
                 { name: '`/shop`', value: 'Browse and buy items from the shop' },
                 { name: '`/pay` / `/donate`', value: 'Transfer money to another user' },
                 { name: '`/give`', value: 'Give an item from your inventory to someone' },
                 { name: '`/rob`', value: 'Attempt to steal money from another user' },
                 { name: '`/redeem`', value: 'Redeem special codes for rewards' },
-                { name: '`/lottery`', value: 'Join the server-wide hourly lottery' },
-                { name: '`/addmoney`', value: 'Admin command to add money to a user' }
+                { name: '`/lottery`', value: 'Join the server-wide hourly lottery' }
             ];
             break;
     }
