@@ -1,4 +1,13 @@
-export const shopItems = [];
+export const shopItems = [
+    {
+        id: 'before_20k_card',
+        name: 'Before 20K Card',
+        description: 'A legendary card given to those who were here before the 20K milestone.',
+        type: 'collectible',
+        purchasable: false,
+        emoji: '💳'
+    }
+];
 
 export function getItemById(itemId) {
     return shopItems.find(item => item.id === itemId);
@@ -17,6 +26,10 @@ export function validatePurchase(itemId, userData) {
     const item = getItemById(itemId);
     if (!item) {
         return { valid: false, reason: 'Item not found' };
+    }
+
+    if (item.purchasable === false) {
+        return { valid: false, reason: 'This item cannot be purchased from the shop.' };
     }
 
     const inventory = userData.inventory || {};

@@ -2,7 +2,8 @@ import { SlashCommandBuilder } from 'discord.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { successEmbed } from '../../utils/embeds.js';
-import { addMoney } from '../../utils/economy.js';
+import { addMoney, getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { shopItems } from '../../config/shop/items.js';
 import { logger } from '../../utils/logger.js';
 
 export default {
@@ -39,10 +40,16 @@ export default {
             );
         }
 
-        // Grant rewards
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
         const rewards = [];
+
+        // Load user data once if needed for items
+        let userData = null;
+
+        // Grant money rewards
         if (codeData.money > 0) {
-            const result = await addMoney(client, interaction.guildId, interaction.user.id, codeData.money);
+            const result = await addMoney(client, guildId, userId, codeData.money);
             if (result.success) {
                 rewards.push(`💰 **$${codeData.money.toLocaleString()}**`);
             } else {
@@ -54,18 +61,31 @@ export default {
             }
         }
 
-        // Handle item placeholder (coming soon)
+        // Grant item rewards
         if (codeData.item) {
-            rewards.push(`📦 **${codeData.item}** (Feature coming soon)`);
+            const item = shopItems.find(i => i.id === codeData.item || i.name.toLowerCase() === codeData.item.toLowerCase());
+            
+            if (item) {
+                if (!userData) userData = await getEconomyData(client, guildId, userId);
+                
+                const inventory = userData.inventory || {};
+                inventory[item.id] = (inventory[item.id] || 0) + 1;
+                userData.inventory = inventory;
+                
+                await setEconomyData(client, guildId, userId, userData);
+                rewards.push(`${item.emoji || '📦'} **${item.name}**`);
+            } else {
+                rewards.push(`📦 **${codeData.item}** (Item not found in registry)`);
+            }
         }
 
         // Mark as redeemed
         codeData.redeemed = true;
-        codeData.redeemerId = interaction.user.id;
+        codeData.redeemerId = userId;
         codeData.redeemedAt = Date.now();
         await client.db.set(codeKey, codeData);
 
-        logger.info(`[ECONOMY] Code redeemed: ${code} by ${interaction.user.id} in guild ${interaction.guildId}`);
+        logger.info(`[ECONOMY] Code redeemed: ${code} by ${userId} in guild ${guildId}`);
 
         const embed = successEmbed(
             `You have successfully redeemed code \`${code}\`!\n\n**Rewards Received:**\n${rewards.join('\n')}`,
@@ -75,3 +95,4 @@ export default {
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'redeem' })
 };
+
