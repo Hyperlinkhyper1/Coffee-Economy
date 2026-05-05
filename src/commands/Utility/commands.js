@@ -70,7 +70,9 @@ function getCategoryDisplay(category) {
                 { name: '`/achievements`', value: 'View your medals and achievement progress' },
                 { name: '`/level`', value: 'Check your current level and experience' },
                 { name: '`/leaderboard`', value: 'View the top players in the server' },
-                { name: '`/bankinfo`', value: 'Check your cash and bank balance' }
+                { name: '`/bankinfo`', value: 'Check your cash and bank balance' },
+                { name: '`/levelrole`', value: 'Assign a role reward to a specific level (Admin)' },
+                { name: '`/levelalert`', value: 'Change the channel for level-up alerts (Admin)' }
             ];
             break;
 
