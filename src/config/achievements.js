@@ -157,9 +157,9 @@ export async function checkAndAnnounceAchievements(client, guild, member, userDa
         }
 
         if (newlyEarned.length > 0) {
-            // Get announcement channel (using leveling config or system channel)
+            // Get announcement channel (prioritize achievementChannel, then levelUpChannel, then system channel)
             const config = await client.db.get(`guild:${guild.id}:leveling`, { enabled: true });
-            const announceChannelId = config.levelUpChannel || guild.systemChannelId;
+            const announceChannelId = config.achievementChannel || config.levelUpChannel || guild.systemChannelId;
             const channel = guild.channels.cache.get(announceChannelId);
 
             if (channel && channel.isTextBased()) {
