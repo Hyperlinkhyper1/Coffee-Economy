@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import { successEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
-
+import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const EMBED_DESCRIPTION_LIMIT = 4096;
@@ -80,6 +80,18 @@ export default {
         description,
         "🏆 Duel Complete!"
       );
+
+      // Track win for the winner
+      try {
+          const userData = await getEconomyData(client, interaction.guildId, winner.id);
+          if (!userData.stats) {
+              userData.stats = { messages: 0, reactions: 0, voiceMinutes: 0, isBoosting: false, fightsWon: 0 };
+          }
+          userData.stats.fightsWon = (userData.stats.fightsWon || 0) + 1;
+          await setEconomyData(client, interaction.guildId, winner.id, userData);
+      } catch (err) {
+          logger.error(`Failed to track fight win for ${winner.id}:`, err);
+      }
 
       await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
       logger.debug(`Fight command executed between ${challenger.id} and ${opponent.id} in guild ${interaction.guildId}`);

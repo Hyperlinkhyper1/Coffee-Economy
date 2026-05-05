@@ -88,12 +88,14 @@ export const EconomyDataSchema = z
         messages: z.number().int().nonnegative().default(0),
         reactions: z.number().int().nonnegative().default(0),
         voiceMinutes: z.number().int().nonnegative().default(0),
-        isBoosting: z.boolean().default(false)
+        isBoosting: z.boolean().default(false),
+        fightsWon: z.number().int().nonnegative().default(0)
     }).default({
         messages: 0,
         reactions: 0,
         voiceMinutes: 0,
-        isBoosting: false
+        isBoosting: false,
+        fightsWon: 0
     })
   })
   .passthrough();

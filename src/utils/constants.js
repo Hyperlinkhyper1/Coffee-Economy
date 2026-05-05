@@ -33,7 +33,8 @@ export const DEFAULT_ECONOMY_DATA = {
         messages: 0,
         reactions: 0,
         voiceMinutes: 0,
-        isBoosting: false
+        isBoosting: false,
+        fightsWon: 0
     }
 };
 

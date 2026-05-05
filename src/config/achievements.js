@@ -62,6 +62,36 @@ export const ACHIEVEMENTS = [
         thresholds: [
             { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: true }
         ]
+    },
+    {
+        id: 'fights',
+        name: 'Combatant',
+        description: 'Win fights against other users.',
+        type: 'stat',
+        statKey: 'fightsWon',
+        thresholds: [
+            { level: ACHIEVEMENT_LEVELS.BRONZE, value: 3 },
+            { level: ACHIEVEMENT_LEVELS.SILVER, value: 10 },
+            { level: ACHIEVEMENT_LEVELS.GOLD, value: 25 },
+            { level: ACHIEVEMENT_LEVELS.PLATINUM, value: 50 },
+            { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 75 },
+            { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 125 }
+        ]
+    },
+    {
+        id: 'shifts',
+        name: 'Hard Worker',
+        description: 'Work shifts to earn your keep.',
+        type: 'stat',
+        statKey: 'shifts',
+        thresholds: [
+            { level: ACHIEVEMENT_LEVELS.BRONZE, value: 10 },
+            { level: ACHIEVEMENT_LEVELS.SILVER, value: 25 },
+            { level: ACHIEVEMENT_LEVELS.GOLD, value: 50 },
+            { level: ACHIEVEMENT_LEVELS.PLATINUM, value: 100 },
+            { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 150 },
+            { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 250 }
+        ]
     }
 ];
 
@@ -69,7 +99,11 @@ export function getAchievementStatus(userData) {
     const stats = userData.stats || {};
     
     return ACHIEVEMENTS.map(achievement => {
-        const currentValue = stats[achievement.statKey] || 0;
+        // Handle both nested stats and root level stats (like shifts)
+        const currentValue = stats[achievement.statKey] !== undefined 
+            ? stats[achievement.statKey] 
+            : (userData[achievement.statKey] || 0);
+            
         let currentLevel = null;
         let nextThreshold = null;
 
