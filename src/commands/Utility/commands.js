@@ -18,7 +18,11 @@ export default {
     execute: withErrorHandling(async (interaction, config, client) => {
         await InteractionHelper.safeDefer(interaction);
 
-        const response = await InteractionHelper.safeEditReply(interaction, getCategoryDisplay(CATEGORIES.OVERVIEW));
+        const initialDisplay = getCategoryDisplay(CATEGORIES.OVERVIEW);
+        const response = await InteractionHelper.safeEditReply(interaction, {
+            ...initialDisplay,
+            fetchReply: true
+        });
 
         if (!response) return;
 
