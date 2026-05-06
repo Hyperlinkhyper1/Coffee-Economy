@@ -10,8 +10,8 @@ const COOLDOWN = 1 * 60 * 1000;
 
 const DIFFICULTIES = {
     easy: { label: 'Easy', reward: 100 },
-    medium: { label: 'Medium', reward: 250 },
-    hard: { label: 'Hard', reward: 500 }
+    medium: { label: 'Medium', reward: 500 },
+    hard: { label: 'Hard', reward: 1000 }
 };
 
 export default {
@@ -49,8 +49,8 @@ export default {
         const startEmbed = infoEmbed(
             "Choose your difficulty level! Harder equations give bigger rewards.\n\n" +
             "🟢 **Easy**: $100 Reward\n" +
-            "🔵 **Medium**: $250 Reward\n" +
-            "🔴 **Hard**: $500 Reward\n\n" +
+            "🔵 **Medium**: $500 Reward\n" +
+            "🔴 **Hard**: $1000 Reward\n\n" +
             `**Cost:** $${COST}\n` +
             "Select a difficulty below to begin!",
             `🧮 Math Game - ${interaction.user.username}`
@@ -186,13 +186,13 @@ function generateEquation(difficulty) {
         const type = Math.random() > 0.5 ? 'multiplication' : 'division';
 
         if (type === 'multiplication') {
-            const a = Math.floor(Math.random() * 20) + 2;
-            const b = Math.floor(Math.random() * 15) + 2;
+            const a = Math.floor(Math.random() * 50) + 10;
+            const b = Math.floor(Math.random() * 50) + 10;
             text = `${a} × ${b}`;
             answer = a * b;
         } else {
-            const divisor = Math.floor(Math.random() * 12) + 2;
-            answer = Math.floor(Math.random() * 12) + 2;
+            const divisor = Math.floor(Math.random() * 40) + 10;
+            answer = Math.floor(Math.random() * 40) + 10;
             const dividend = divisor * answer;
             text = `${dividend} ÷ ${divisor}`;
         }
@@ -200,11 +200,11 @@ function generateEquation(difficulty) {
         const type = Math.random() > 0.5 ? 'square' : 'root';
 
         if (type === 'square') {
-            const a = Math.floor(Math.random() * 25) + 2;
+            const a = Math.floor(Math.random() * 80) + 20;
             text = `${a}²`;
             answer = a * a;
         } else {
-            const root = Math.floor(Math.random() * 25) + 2;
+            const root = Math.floor(Math.random() * 80) + 20;
             const square = root * root;
             text = `√${square}`;
             answer = root;
