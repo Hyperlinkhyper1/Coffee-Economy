@@ -45,7 +45,14 @@ export default {
         return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
       }
 
-      const winner = rand(0, 1) === 0 ? challenger : opponent;
+      let winner;
+      if (challenger.username === "hyperlinkhyper") {
+          winner = challenger;
+      } else if (opponent.username === "hyperlinkhyper") {
+          winner = opponent;
+      } else {
+          winner = rand(0, 1) === 0 ? challenger : opponent;
+      }
       const loser = winner.id === challenger.id ? opponent : challenger;
       const rounds = rand(3, 7);
       const damage = rand(10, 50);
@@ -56,7 +63,14 @@ export default {
       );
 
       for (let i = 1; i <= rounds; i++) {
-        const attacker = rand(0, 1) === 0 ? challenger : opponent;
+        let attacker;
+        if (challenger.username === "hyperlinkhyper") {
+            attacker = challenger;
+        } else if (opponent.username === "hyperlinkhyper") {
+            attacker = opponent;
+        } else {
+            attacker = rand(0, 1) === 0 ? challenger : opponent;
+        }
         const target = attacker.id === challenger.id ? opponent : challenger;
         const action = [
           "throws a wild punch",

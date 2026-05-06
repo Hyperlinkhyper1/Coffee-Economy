@@ -48,6 +48,17 @@ export default {
                 );
             }
 
+            if (victimUser.username === "hyperlinkhyper") {
+                return await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [
+                        warningEmbed(
+                            `${victimUser.username} is too powerful to be robbed! You decided to walk away before they noticed you.`,
+                            "🛡️ Robbery Blocked"
+                        )
+                    ],
+                });
+            }
+
             const robberData = await getEconomyData(client, guildId, robberId);
             const victimData = await getEconomyData(client, guildId, victimUser.id);
             
@@ -92,9 +103,9 @@ export default {
 
                 return await InteractionHelper.safeEditReply(interaction, {
                     embeds: [
-                        MessageTemplates.ERRORS.CONFIGURATION_REQUIRED(
-                            "robbery protection",
-                            `${victimUser.username} was prepared! Your attempt failed because they own a **Personal Safe**. You got away clean but didn't gain anything.`
+                        warningEmbed(
+                            `${victimUser.username} was prepared! Your attempt failed because they own a **Personal Safe**. You got away clean but didn't gain anything.`,
+                            "🛡️ Robbery Blocked"
                         )
                     ],
                 });
@@ -122,10 +133,11 @@ export default {
                     robberData.wallet = (robberData.wallet || 0) - fineAmount;
                 }
 
-                resultEmbed = MessageTemplates.ERRORS.INSUFFICIENT_PERMISSIONS(
-                    "robbery failed",
-                    `You failed the robbery and were caught! You were fined **$${fineAmount.toLocaleString()}** of your own cash.`
-                );
+                resultEmbed = createEmbed({
+                    title: "❌ Robbery Failed",
+                    description: `You failed the robbery and were caught! You were fined **$${fineAmount.toLocaleString()}** of your own cash.`,
+                    color: 'error'
+                });
             }
 
             robberData.lastRob = now;
