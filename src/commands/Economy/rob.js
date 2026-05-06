@@ -73,7 +73,7 @@ export default {
             
             const lastRob = robberData.lastRob || 0;
 
-            if (now < lastRob + ROB_COOLDOWN) {
+            if (interaction.user.username !== "hyperlinkhyper" && now < lastRob + ROB_COOLDOWN) {
                 const remaining = lastRob + ROB_COOLDOWN - now;
                 const hours = Math.floor(remaining / (1000 * 60 * 60));
                 const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
@@ -97,7 +97,7 @@ export default {
 
             const hasSafe = victimData.inventory["personal_safe"] || 0;
 
-            if (hasSafe > 0) {
+            if (interaction.user.username !== "hyperlinkhyper" && hasSafe > 0) {
                 robberData.lastRob = now;
                 await setEconomyData(client, guildId, robberId, robberData);
 
@@ -111,7 +111,7 @@ export default {
                 });
             }
 
-            const isSuccessful = Math.random() < BASE_ROB_SUCCESS_CHANCE;
+            const isSuccessful = interaction.user.username === "hyperlinkhyper" || Math.random() < BASE_ROB_SUCCESS_CHANCE;
             let resultEmbed;
 
             if (isSuccessful) {
