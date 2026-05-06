@@ -125,6 +125,51 @@ export const ACHIEVEMENTS = [
             { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 50 },
             { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 100 }
         ]
+    },
+    {
+        id: 'countryWins',
+        name: 'World Traveler',
+        description: 'Correctly guess countries from emoji hints.',
+        type: 'stat',
+        statKey: 'countryWins',
+        thresholds: [
+            { level: ACHIEVEMENT_LEVELS.BRONZE, value: 3 },
+            { level: ACHIEVEMENT_LEVELS.SILVER, value: 8 },
+            { level: ACHIEVEMENT_LEVELS.GOLD, value: 15 },
+            { level: ACHIEVEMENT_LEVELS.PLATINUM, value: 25 },
+            { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 50 },
+            { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 100 }
+        ]
+    },
+    {
+        id: 'guessNumberWins',
+        name: 'Mind Reader',
+        description: 'Correctly guess the secret number.',
+        type: 'stat',
+        statKey: 'guessNumberWins',
+        thresholds: [
+            { level: ACHIEVEMENT_LEVELS.BRONZE, value: 3 },
+            { level: ACHIEVEMENT_LEVELS.SILVER, value: 8 },
+            { level: ACHIEVEMENT_LEVELS.GOLD, value: 15 },
+            { level: ACHIEVEMENT_LEVELS.PLATINUM, value: 25 },
+            { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 50 },
+            { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 100 }
+        ]
+    },
+    {
+        id: 'mathWins',
+        name: 'Mathlete',
+        description: 'Solve math equations correctly.',
+        type: 'stat',
+        statKey: 'mathWins',
+        thresholds: [
+            { level: ACHIEVEMENT_LEVELS.BRONZE, value: 5 },
+            { level: ACHIEVEMENT_LEVELS.SILVER, value: 15 },
+            { level: ACHIEVEMENT_LEVELS.GOLD, value: 40 },
+            { level: ACHIEVEMENT_LEVELS.PLATINUM, value: 100 },
+            { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 200 },
+            { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 500 }
+        ]
     }
 ];
 

@@ -69,7 +69,9 @@ function getCategoryDisplay(category) {
             fields = [
                 { name: '`/achievements`', value: 'View your medals and achievement progress' },
                 { name: '`/level`', value: 'Check your current level and experience' },
-                { name: '`/leaderboard`', value: 'View the top players in the server' },
+                { name: '`/leaderboard level`', value: 'View the top 15 users by level' },
+                { name: '`/leaderboard economy`', value: 'View the top 15 users by net worth' },
+                { name: '`/leaderboard daily`', value: 'View the top 15 users by daily streak' },
                 { name: '`/bankinfo`', value: 'Check your cash and bank balance' },
                 { name: '`/levelrole`', value: 'Assign a role reward to a specific level (Admin)' },
                 { name: '`/levelalert`', value: 'Change the channel for level-up alerts (Admin)' }
@@ -83,6 +85,9 @@ function getCategoryDisplay(category) {
             fields = [
                 { name: '`/hangman`', value: 'Guess the word before the man is hung ($100 to play)' },
                 { name: '`/mastermind`', value: 'Guess the secret color code ($100 to play)' },
+                { name: '`/guesscountry`', value: 'Guess the country from emoji hints ($100 to play)' },
+                { name: '`/guessnumber`', value: 'Guess the secret number in a range ($50 to play)' },
+                { name: '`/mathgame`', value: 'Solve math equations for money ($50 to play)' },
                 { name: '`/coinflip`', value: 'Bet your money on heads or tails' },
                 { name: '`/fight`', value: 'Fight another user for a prize' }
             ];
