@@ -233,7 +233,8 @@ export async function checkAndAnnounceAchievements(client, guild, member, userDa
 
         if (newlyEarned.length > 0) {
             // Get announcement channel (prioritize achievementChannel, then levelUpChannel, then system channel)
-            const config = await client.db.get(`guild:${guild.id}:leveling`, { enabled: true });
+            const { getLevelingConfig } = await import('../services/leveling.js');
+            const config = await getLevelingConfig(client, guild.id);
             const announceChannelId = config.achievementChannel || config.levelUpChannel || guild.systemChannelId;
             const channel = guild.channels.cache.get(announceChannelId);
 
