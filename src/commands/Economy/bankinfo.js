@@ -42,6 +42,7 @@ export default {
         }
 
         const maxBank = getMaxBankCapacity(userData);
+        const bankLevel = userData.bankLevel || 0;
         const wallet = userData.wallet || 0;
         const bank = userData.bank || 0;
 
@@ -58,6 +59,11 @@ export default {
                 {
                     name: "🏦 Bank Balance",
                     value: `$${bank.toLocaleString()} / $${maxBank.toLocaleString()}`,
+                    inline: true,
+                },
+                {
+                    name: "📊 Bank Level",
+                    value: `Level ${bankLevel}`,
                     inline: true,
                 },
                 {

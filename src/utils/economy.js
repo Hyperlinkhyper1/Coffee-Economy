@@ -6,8 +6,17 @@ import { validateDiscordId, validateNumber } from './validation.js';
 import { DEFAULT_ECONOMY_DATA } from './constants.js';
 
 const ECONOMY_CONFIG = BotConfig.economy || {};
-const BASE_BANK_CAPACITY = ECONOMY_CONFIG.baseBankCapacity || 10000;
-const BANK_CAPACITY_PER_LEVEL = ECONOMY_CONFIG.bankCapacityPerLevel || 5000;
+const BASE_BANK_CAPACITY = 100000;
+
+export const BANK_UPGRADES = [
+    { level: 0, capacity: 100000, cost: 0 },
+    { level: 1, capacity: 250000, cost: 75000 },
+    { level: 2, capacity: 500000, cost: 150000 },
+    { level: 3, capacity: 1000000, cost: 300000 },
+    { level: 4, capacity: 2500000, cost: 500000 },
+    { level: 5, capacity: 5000000, cost: 1250000 }
+];
+
 const DAILY_AMOUNT = ECONOMY_CONFIG.dailyAmount || 100;
 const WORK_MIN = ECONOMY_CONFIG.workMin || 10;
 const WORK_MAX = ECONOMY_CONFIG.workMax || 100;
@@ -45,17 +54,10 @@ export function getMaxBankCapacity(userData) {
     if (!userData) return BASE_BANK_CAPACITY;
     
     const bankLevel = userData.bankLevel || 0;
-    let capacity = BASE_BANK_CAPACITY + (bankLevel * BANK_CAPACITY_PER_LEVEL);
+    const upgrade = BANK_UPGRADES.find(u => u.level === bankLevel) || BANK_UPGRADES[0];
+    let capacity = upgrade.capacity;
     
-    
-    const upgrades = userData.upgrades || {};
     const inventory = userData.inventory || {};
-    
-    
-    if (upgrades['bank_upgrade_1']) {
-        capacity = Math.floor(capacity * 1.5);
-    }
-    
     
     const bankNotes = inventory['bank_note'] || 0;
     capacity += (bankNotes * 10000);
