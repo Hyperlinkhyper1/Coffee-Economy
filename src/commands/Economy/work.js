@@ -38,7 +38,10 @@ export default {
         ),
 
     async autocomplete(interaction) {
-        // ... (existing autocomplete code)
+        const focusedValue = interaction.options.getFocused().toLowerCase();
+        const choices = JOBS.map(job => ({ name: job.name, value: job.id }));
+        const filtered = choices.filter(choice => choice.name.toLowerCase().includes(focusedValue));
+        await interaction.respond(filtered.slice(0, 25));
     },
 
     execute: withErrorHandling(async (interaction, config, client) => {
