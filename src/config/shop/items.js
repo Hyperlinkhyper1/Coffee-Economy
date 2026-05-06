@@ -5,6 +5,7 @@ export const shopItems = [
         description: 'A legendary card given to those who were here before the 20K milestone.',
         type: 'collectible',
         purchasable: false,
+        price: 0,
         rarity: 'Limited',
         emoji: '💳'
     }
@@ -20,7 +21,7 @@ export function getItemsByType(type) {
 
 export function getItemPrice(itemId) {
     const item = getItemById(itemId);
-    return item ? item.price : 0;
+    return (item && item.price !== undefined) ? item.price : 0;
 }
 
 export function validatePurchase(itemId, userData) {

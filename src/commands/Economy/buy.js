@@ -38,12 +38,20 @@ export default {
             const quantity = interaction.options.getInteger("quantity") || 1;
 
             const item = SHOP_ITEMS.find(i => i.id === itemId);
-
             if (!item) {
                 throw createError(
                     `Item ${itemId} not found`,
                     ErrorTypes.VALIDATION,
                     `The item ID \`${itemId}\` does not exist in the shop.`,
+                    { itemId }
+                );
+            }
+
+            if (item.purchasable === false) {
+                throw createError(
+                    "Item not purchasable",
+                    ErrorTypes.VALIDATION,
+                    `The item **${item.name}** cannot be purchased from the shop.`,
                     { itemId }
                 );
             }

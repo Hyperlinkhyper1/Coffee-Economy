@@ -21,7 +21,7 @@ export default {
                 pageItems.forEach(item => {
                     embed.addFields({
                         name: `${item.name} (${item.id})`,
-                        value: `🏷️ **Type:** ${item.type}\n💚 **Price:** $${item.price.toLocaleString()}\n${item.description}`,
+                        value: `🏷️ **Type:** ${item.type}\n💚 **Price:** ${item.price !== undefined ? `$${item.price.toLocaleString()}` : 'Not for sale'}\n${item.description}`,
                         inline: false,
                     });
                 });
