@@ -92,7 +92,8 @@ export const EconomyDataSchema = z
         isBoosting: z.boolean().default(false),
         fightsWon: z.number().int().nonnegative().default(0),
         mastermindWins: z.number().int().nonnegative().default(0),
-        hangmanWins: z.number().int().nonnegative().default(0)
+        hangmanWins: z.number().int().nonnegative().default(0),
+        tttWins: z.number().int().nonnegative().default(0)
     }).default({
         messages: 0,
         reactions: 0,
@@ -100,7 +101,8 @@ export const EconomyDataSchema = z
         isBoosting: false,
         fightsWon: 0,
         mastermindWins: 0,
-        hangmanWins: 0
+        hangmanWins: 0,
+        tttWins: 0
     })
   })
   .passthrough();

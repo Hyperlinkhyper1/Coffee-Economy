@@ -169,73 +169,45 @@ function generateEquation(difficulty) {
     let answer = 0;
 
     if (difficulty === 'easy') {
-        const types = ['addition', 'subtraction', 'multiplication'];
-        const type = types[Math.floor(Math.random() * types.length)];
+        const type = Math.random() > 0.5 ? 'addition' : 'subtraction';
         
-        switch (type) {
-            case 'addition': {
-                const a = Math.floor(Math.random() * 50) + 1;
-                const b = Math.floor(Math.random() * 50) + 1;
-                text = `${a} + ${b}`;
-                answer = a + b;
-                break;
-            }
-            case 'subtraction': {
-                const a = Math.floor(Math.random() * 50) + 20;
-                const b = Math.floor(Math.random() * a) + 1;
-                text = `${a} - ${b}`;
-                answer = a - b;
-                break;
-            }
-            case 'multiplication': {
-                const a = Math.floor(Math.random() * 10) + 2;
-                const b = Math.floor(Math.random() * 10) + 2;
-                text = `${a} × ${b}`;
-                answer = a * b;
-                break;
-            }
+        if (type === 'addition') {
+            const a = Math.floor(Math.random() * 100) + 1;
+            const b = Math.floor(Math.random() * 100) + 1;
+            text = `${a} + ${b}`;
+            answer = a + b;
+        } else {
+            const a = Math.floor(Math.random() * 100) + 50;
+            const b = Math.floor(Math.random() * a) + 1;
+            text = `${a} - ${b}`;
+            answer = a - b;
         }
     } else if (difficulty === 'medium') {
-        const types = ['multiplication', 'mix', 'division'];
-        const type = types[Math.floor(Math.random() * types.length)];
+        const type = Math.random() > 0.5 ? 'multiplication' : 'division';
 
-        switch (type) {
-            case 'multiplication': {
-                const a = Math.floor(Math.random() * 20) + 10;
-                const b = Math.floor(Math.random() * 15) + 5;
-                text = `${a} × ${b}`;
-                answer = a * b;
-                break;
-            }
-            case 'mix': {
-                const a = Math.floor(Math.random() * 10) + 2;
-                const b = Math.floor(Math.random() * 10) + 2;
-                const c = Math.floor(Math.random() * 50) + 10;
-                text = `(${a} × ${b}) + ${c}`;
-                answer = (a * b) + c;
-                break;
-            }
-            case 'division': {
-                const b = Math.floor(Math.random() * 12) + 2;
-                answer = Math.floor(Math.random() * 12) + 2;
-                const a = b * answer;
-                text = `${a} ÷ ${b}`;
-                break;
-            }
-        }
-    } else { // Hard
-        const a = Math.floor(Math.random() * 40) + 10;
-        const b = Math.floor(Math.random() * 30) + 10;
-        const c = Math.floor(Math.random() * 100) + 50;
-        const type = Math.random() > 0.5 ? 'hard_mix' : 'triple';
-
-        if (type === 'hard_mix') {
-            text = `(${a} × ${b}) - ${c}`;
-            answer = (a * b) - c;
+        if (type === 'multiplication') {
+            const a = Math.floor(Math.random() * 20) + 2;
+            const b = Math.floor(Math.random() * 15) + 2;
+            text = `${a} × ${b}`;
+            answer = a * b;
         } else {
-            const d = Math.floor(Math.random() * 50) + 10;
-            text = `${a} + ${b} + ${c} - ${d}`;
-            answer = a + b + c - d;
+            const divisor = Math.floor(Math.random() * 12) + 2;
+            answer = Math.floor(Math.random() * 12) + 2;
+            const dividend = divisor * answer;
+            text = `${dividend} ÷ ${divisor}`;
+        }
+    } else { // Hard: Square root and Square
+        const type = Math.random() > 0.5 ? 'square' : 'root';
+
+        if (type === 'square') {
+            const a = Math.floor(Math.random() * 25) + 2;
+            text = `${a}²`;
+            answer = a * a;
+        } else {
+            const root = Math.floor(Math.random() * 25) + 2;
+            const square = root * root;
+            text = `√${square}`;
+            answer = root;
         }
     }
 

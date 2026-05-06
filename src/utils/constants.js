@@ -38,7 +38,8 @@ export const DEFAULT_ECONOMY_DATA = {
         isBoosting: false,
         fightsWon: 0,
         mastermindWins: 0,
-        hangmanWins: 0
+        hangmanWins: 0,
+        tttWins: 0
     }
 };
 

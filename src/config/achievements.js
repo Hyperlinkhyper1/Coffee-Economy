@@ -170,6 +170,21 @@ export const ACHIEVEMENTS = [
             { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 200 },
             { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 500 }
         ]
+    },
+    {
+        id: 'tttWins',
+        name: 'Tic Tac Toe Tactician',
+        description: 'Win games of Tic Tac Toe.',
+        type: 'stat',
+        statKey: 'tttWins',
+        thresholds: [
+            { level: ACHIEVEMENT_LEVELS.BRONZE, value: 3 },
+            { level: ACHIEVEMENT_LEVELS.SILVER, value: 8 },
+            { level: ACHIEVEMENT_LEVELS.GOLD, value: 15 },
+            { level: ACHIEVEMENT_LEVELS.PLATINUM, value: 25 },
+            { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 50 },
+            { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 100 }
+        ]
     }
 ];
 
