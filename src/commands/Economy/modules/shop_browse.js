@@ -8,8 +8,16 @@ export default {
         try {
             const TARGET_MAX_PAGES = 3;
             const ITEMS_PER_PAGE = Math.max(1, Math.ceil(shopItems.length / TARGET_MAX_PAGES));
-            const totalPages = Math.ceil(shopItems.length / ITEMS_PER_PAGE);
+            const totalPages = Math.max(1, Math.ceil(shopItems.length / ITEMS_PER_PAGE));
             let currentPage = 1;
+
+            if (shopItems.length === 0) {
+                const embed = new EmbedBuilder()
+                    .setTitle('🛒 Store')
+                    .setColor(getColor('primary'))
+                    .setDescription('The shop is currently empty. Check back later!');
+                return await interaction.reply({ embeds: [embed], flags: 0 });
+            }
 
             const createShopEmbed = (page) => {
                 const startIndex = (page - 1) * ITEMS_PER_PAGE;

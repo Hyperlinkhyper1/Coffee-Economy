@@ -1,15 +1,4 @@
-export const shopItems = [
-    {
-        id: 'before_20k_card',
-        name: 'Before 20K Card',
-        description: 'A legendary card given to those who were here before the 20K milestone.',
-        type: 'collectible',
-        purchasable: false,
-        price: 0,
-        rarity: 'Limited',
-        emoji: '💳'
-    }
-];
+export const shopItems = [];
 
 export function getItemById(itemId) {
     return shopItems.find(item => item.id === itemId);
