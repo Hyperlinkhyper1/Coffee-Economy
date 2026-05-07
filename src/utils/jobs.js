@@ -79,7 +79,7 @@ export const JOBS = [
         minPay: 5000,
         maxPay: 7500,
         shiftsRequired: null,
-        allowedUserId: 'hyperlinkhyper',
+        allowedUserId: '1080079015165050941',
         emoji: '🛋️'
     }
 ];
