@@ -78,10 +78,17 @@ export default {
                     "💼 Available Jobs",
                     `Total Jobs: **${JOBS.length}** • Your Shifts: **${shifts}**\n\n` +
                     pageJobs.map(j => {
-                        const isUnlocked = shifts >= j.shiftsRequired;
-                        const status = isUnlocked ? "Unlocked" : `${j.shiftsRequired} shifts`;
-                        const statusIcon = isUnlocked ? "✅" : "🔒";
-                        
+                        let isUnlocked, status, statusIcon;
+
+                        if (j.bankRequired) {
+                            isUnlocked = userData.wallet >= j.bankRequired;
+                            status = isUnlocked ? "Unlocked" : `$${j.bankRequired.toLocaleString()}`;
+                        } else {
+                            isUnlocked = shifts >= j.shiftsRequired;
+                            status = isUnlocked ? "Unlocked" : `${j.shiftsRequired} shifts`;
+                        }
+                        statusIcon = isUnlocked ? "✅" : "🔒";
+
                         return `${j.emoji} **${j.name}**\n` +
                                `\`Pay: $${j.minPay}-$${j.maxPay}\` • \`${statusIcon} ${status}\``;
                     }).join('\n\n')
@@ -148,14 +155,26 @@ export default {
 
                 const job = getJob(jobOption);
                 const shifts = userData.shifts || 0;
+                const wallet = userData.wallet || 0;
 
-                if (shifts < job.shiftsRequired) {
-                    throw createError(
-                        "Job Locked",
-                        ErrorTypes.VALIDATION,
-                        `You need **${job.shiftsRequired}** total shifts to unlock the **${job.name}** job. You currently have **${shifts}** shifts.`,
-                        { jobId: job.id, shiftsRequired: job.shiftsRequired, currentShifts: shifts }
-                    );
+                if (job.bankRequired) {
+                    if (wallet < job.bankRequired) {
+                        throw createError(
+                            "Job Locked",
+                            ErrorTypes.VALIDATION,
+                            `You need **$${job.bankRequired.toLocaleString()}** in your wallet to unlock the **${job.name}** job. You currently have **$${wallet.toLocaleString()}**.`,
+                            { jobId: job.id, bankRequired: job.bankRequired, currentWallet: wallet }
+                        );
+                    }
+                } else {
+                    if (shifts < job.shiftsRequired) {
+                        throw createError(
+                            "Job Locked",
+                            ErrorTypes.VALIDATION,
+                            `You need **${job.shiftsRequired}** total shifts to unlock the **${job.name}** job. You currently have **${shifts}** shifts.`,
+                            { jobId: job.id, shiftsRequired: job.shiftsRequired, currentShifts: shifts }
+                        );
+                    }
                 }
 
                 userData.job = job.id;
@@ -177,17 +196,27 @@ export default {
             if (!deferred) return;
 
             const shifts = userData.shifts || 0;
+            const wallet = userData.wallet || 0;
             const currentJobId = userData.job || 'janitor';
-            const unlockedJobs = getUnlockedJobs(shifts);
+            const unlockedJobs = getUnlockedJobs(shifts, wallet);
 
             const embed = infoEmbed(
                 "💼 Job Selection",
-                `Select a job you'd like to work at. You currently have **${shifts}** total shifts.\n\n` +
+                `Select a job you'd like to work at. You currently have **${shifts}** total shifts and **$${wallet.toLocaleString()}** in your wallet.\n\n` +
                 JOBS.map(j => {
-                    const isUnlocked = shifts >= j.shiftsRequired;
+                    let isUnlocked, unlockInfo;
+
+                    if (j.bankRequired) {
+                        isUnlocked = wallet >= j.bankRequired;
+                        unlockInfo = isUnlocked ? "✅ Unlocked" : `🔒 Locked ($${j.bankRequired.toLocaleString()} required)`;
+                    } else {
+                        isUnlocked = shifts >= j.shiftsRequired;
+                        unlockInfo = isUnlocked ? "✅ Unlocked" : `🔒 Locked (${j.shiftsRequired} shifts required)`;
+                    }
+
                     const isCurrent = j.id === currentJobId;
                     return `${j.emoji} **${j.name}** ${isCurrent ? "*(Current)*" : ""}\n` +
-                           `└ Pay: $${j.minPay}-$${j.maxPay} | ${isUnlocked ? "✅ Unlocked" : `🔒 Locked (${j.shiftsRequired} shifts required)`}`;
+                           `└ Pay: $${j.minPay}-$${j.maxPay} | ${unlockInfo}`;
                 }).join('\n\n')
             );
 
@@ -196,7 +225,13 @@ export default {
                 .setPlaceholder('Choose your job...')
                 .addOptions(
                     JOBS.map(j => {
-                        const isUnlocked = shifts >= j.shiftsRequired;
+                        let isUnlocked;
+                        if (j.bankRequired) {
+                            isUnlocked = wallet >= j.bankRequired;
+                        } else {
+                            isUnlocked = shifts >= j.shiftsRequired;
+                        }
+
                         return new StringSelectMenuOptionBuilder()
                             .setLabel(j.name)
                             .setDescription(j.description)

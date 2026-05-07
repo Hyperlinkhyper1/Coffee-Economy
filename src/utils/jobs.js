@@ -61,6 +61,16 @@ export const JOBS = [
         maxPay: 1000,
         shiftsRequired: 200,
         emoji: '🤖'
+    },
+    {
+        id: 'banker',
+        name: 'Banker',
+        description: 'Manage finances at a prestigious bank.',
+        minPay: 1500,
+        maxPay: 3000,
+        shiftsRequired: null,
+        bankRequired: 5000000,
+        emoji: '💼'
     }
 ];
 
@@ -68,6 +78,11 @@ export function getJob(jobId) {
     return JOBS.find(j => j.id === jobId.toLowerCase()) || JOBS[0];
 }
 
-export function getUnlockedJobs(shifts) {
-    return JOBS.filter(j => shifts >= j.shiftsRequired);
+export function getUnlockedJobs(shifts, wallet = 0) {
+    return JOBS.filter(j => {
+        if (j.bankRequired) {
+            return wallet >= j.bankRequired;
+        }
+        return shifts >= j.shiftsRequired;
+    });
 }
