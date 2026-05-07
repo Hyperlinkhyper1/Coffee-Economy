@@ -71,6 +71,16 @@ export const JOBS = [
         shiftsRequired: null,
         bankRequired: 5000000,
         emoji: '💼'
+    },
+    {
+        id: 'cozy_developer',
+        name: 'Simply Cozy Developer',
+        description: 'The developer of Simply Cozy. Only for the chosen one.',
+        minPay: 5000,
+        maxPay: 7500,
+        shiftsRequired: null,
+        allowedUserId: 'hyperlinkhyper',
+        emoji: '🛋️'
     }
 ];
 
@@ -78,8 +88,11 @@ export function getJob(jobId) {
     return JOBS.find(j => j.id === jobId.toLowerCase()) || JOBS[0];
 }
 
-export function getUnlockedJobs(shifts, wallet = 0) {
+export function getUnlockedJobs(shifts, wallet = 0, userId = null) {
     return JOBS.filter(j => {
+        if (j.allowedUserId) {
+            return userId === j.allowedUserId;
+        }
         if (j.bankRequired) {
             return wallet >= j.bankRequired;
         }

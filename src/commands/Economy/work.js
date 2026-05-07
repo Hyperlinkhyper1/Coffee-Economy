@@ -80,7 +80,10 @@ export default {
                     pageJobs.map(j => {
                         let isUnlocked, status, statusIcon;
 
-                        if (j.bankRequired) {
+                        if (j.allowedUserId) {
+                            isUnlocked = userId === j.allowedUserId;
+                            status = isUnlocked ? "User-exclusive" : "Not available";
+                        } else if (j.bankRequired) {
                             isUnlocked = userData.wallet >= j.bankRequired;
                             status = isUnlocked ? "Unlocked" : `$${j.bankRequired.toLocaleString()}`;
                         } else {
@@ -157,7 +160,16 @@ export default {
                 const shifts = userData.shifts || 0;
                 const wallet = userData.wallet || 0;
 
-                if (job.bankRequired) {
+                if (job.allowedUserId) {
+                    if (userId !== job.allowedUserId) {
+                        throw createError(
+                            "Job Locked",
+                            ErrorTypes.VALIDATION,
+                            `The **${job.name}** job is exclusive to a specific user and you don't have access to it.`,
+                            { jobId: job.id, allowedUserId: job.allowedUserId, currentUserId: userId }
+                        );
+                    }
+                } else if (job.bankRequired) {
                     if (wallet < job.bankRequired) {
                         throw createError(
                             "Job Locked",
@@ -198,7 +210,7 @@ export default {
             const shifts = userData.shifts || 0;
             const wallet = userData.wallet || 0;
             const currentJobId = userData.job || 'janitor';
-            const unlockedJobs = getUnlockedJobs(shifts, wallet);
+            const unlockedJobs = getUnlockedJobs(shifts, wallet, userId);
 
             const embed = infoEmbed(
                 "💼 Job Selection",
@@ -206,7 +218,10 @@ export default {
                 JOBS.map(j => {
                     let isUnlocked, unlockInfo;
 
-                    if (j.bankRequired) {
+                    if (j.allowedUserId) {
+                        isUnlocked = userId === j.allowedUserId;
+                        unlockInfo = isUnlocked ? "✅ User-Exclusive" : "🔒 Not Available";
+                    } else if (j.bankRequired) {
                         isUnlocked = wallet >= j.bankRequired;
                         unlockInfo = isUnlocked ? "✅ Unlocked" : `🔒 Locked ($${j.bankRequired.toLocaleString()} required)`;
                     } else {
@@ -226,7 +241,9 @@ export default {
                 .addOptions(
                     JOBS.map(j => {
                         let isUnlocked;
-                        if (j.bankRequired) {
+                        if (j.allowedUserId) {
+                            isUnlocked = userId === j.allowedUserId;
+                        } else if (j.bankRequired) {
                             isUnlocked = wallet >= j.bankRequired;
                         } else {
                             isUnlocked = shifts >= j.shiftsRequired;
