@@ -185,6 +185,21 @@ export const ACHIEVEMENTS = [
             { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 50 },
             { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 100 }
         ]
+    },
+    {
+        id: 'matchpairsWins',
+        name: 'Memory Matcher',
+        description: 'Win games of Match Pairs.',
+        type: 'stat',
+        statKey: 'matchpairsWins',
+        thresholds: [
+            { level: ACHIEVEMENT_LEVELS.BRONZE, value: 3 },
+            { level: ACHIEVEMENT_LEVELS.SILVER, value: 8 },
+            { level: ACHIEVEMENT_LEVELS.GOLD, value: 15 },
+            { level: ACHIEVEMENT_LEVELS.PLATINUM, value: 25 },
+            { level: ACHIEVEMENT_LEVELS.DIAMOND, value: 50 },
+            { level: ACHIEVEMENT_LEVELS.COFFEE_CHAMPION, value: 100 }
+        ]
     }
 ];
 

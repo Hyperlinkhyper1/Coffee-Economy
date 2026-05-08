@@ -26,6 +26,7 @@ export const DEFAULT_ECONOMY_DATA = {
     lastWithdraw: 0,
     lastMastermind: 0,
     lastHangman: 0,
+    lastMatchpairs: 0,
     shifts: 0,
     inventory: {},
     upgrades: {},
@@ -39,7 +40,8 @@ export const DEFAULT_ECONOMY_DATA = {
         fightsWon: 0,
         mastermindWins: 0,
         hangmanWins: 0,
-        tttWins: 0
+        tttWins: 0,
+        matchpairsWins: 0
     }
 };
 
