@@ -71,7 +71,9 @@ export function getMaxBankCapacity(userData) {
 
 
 export function formatCurrency(amount) {
-    return `${amount.toLocaleString()} ${ECONOMY_CONFIG.currency || 'coins'}`;
+    const currency = ECONOMY_CONFIG.currency;
+    const name = (amount === 1) ? (currency?.name || 'coin') : (currency?.namePlural || 'coins');
+    return `${amount.toLocaleString()} ${name}`;
 }
 
 
