@@ -14,7 +14,7 @@ export default {
                 .addChannelTypes(ChannelType.GuildText)
                 .setRequired(true)
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         await InteractionHelper.safeDefer(interaction);
