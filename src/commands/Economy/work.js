@@ -308,6 +308,7 @@ export default {
             }
 
             userData.wallet = (userData.wallet || 0) + earned;
+            userData.stats.totalGained = (userData.stats.totalGained || 0) + earned;
             userData.lastWork = now;
             userData.shifts = (userData.shifts || 0) + 1;
 

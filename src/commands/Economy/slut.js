@@ -153,6 +153,9 @@ export default {
             }
 
             userData.wallet = Math.max(0, (userData.wallet || 0) + outcome.delta);
+            if (outcome.delta > 0) {
+                userData.stats.totalGained = (userData.stats.totalGained || 0) + outcome.delta;
+            }
 
             await setEconomyData(client, guildId, userId, userData);
 

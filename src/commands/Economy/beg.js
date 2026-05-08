@@ -55,13 +55,10 @@ export default {
             const success = Math.random() < SUCCESS_CHANCE;
 
             let replyEmbed;
-            let newCash = userData.wallet;
+            let amountWon = 0;
 
             if (success) {
-                const amountWon =
-                    Math.floor(Math.random() * (MAX_WIN - MIN_WIN + 1)) + MIN_WIN;
-
-                newCash += amountWon;
+                amountWon = Math.floor(Math.random() * (MAX_WIN - MIN_WIN + 1)) + MIN_WIN;
 
                 const successMessages = [
                     `A kind stranger drops **$${amountWon.toLocaleString()}** into your cup.`,
@@ -91,8 +88,11 @@ export default {
                 replyEmbed.data.description = failMessages[Math.floor(Math.random() * failMessages.length)];
             }
 
-            userData.wallet = newCash;
-userData.lastBeg = Date.now();
+            userData.wallet = (userData.wallet || 0) + amountWon;
+            if (success) {
+                userData.stats.totalGained = (userData.stats.totalGained || 0) + amountWon;
+            }
+            userData.lastBeg = Date.now();
 
             await setEconomyData(client, guildId, userId, userData);
 

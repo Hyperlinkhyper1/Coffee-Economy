@@ -93,7 +93,9 @@ export const EconomyDataSchema = z
         fightsWon: z.number().int().nonnegative().default(0),
         mastermindWins: z.number().int().nonnegative().default(0),
         hangmanWins: z.number().int().nonnegative().default(0),
-        tttWins: z.number().int().nonnegative().default(0)
+        tttWins: z.number().int().nonnegative().default(0),
+        matchpairsWins: z.number().int().nonnegative().default(0),
+        totalGained: z.number().int().nonnegative().default(0)
     }).default({
         messages: 0,
         reactions: 0,
@@ -102,7 +104,9 @@ export const EconomyDataSchema = z
         fightsWon: 0,
         mastermindWins: 0,
         hangmanWins: 0,
-        tttWins: 0
+        tttWins: 0,
+        matchpairsWins: 0,
+        totalGained: 0
     })
   })
   .passthrough();

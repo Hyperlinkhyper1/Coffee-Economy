@@ -360,6 +360,9 @@ export async function addMoney(client, guildId, userId, amount, type = 'wallet')
             userData.wallet = (userData.wallet || 0) + validAmount;
         }
 
+        // Track total money gained
+        userData.stats.totalGained = (userData.stats.totalGained || 0) + validAmount;
+
         await setEconomyData(client, guildId, userId, userData);
         
         return { 

@@ -81,6 +81,7 @@ export default {
             }
 
             userData.wallet = (userData.wallet || 0) + earned;
+            userData.stats.totalGained = (userData.stats.totalGained || 0) + earned;
             userData.lastDaily = now;
             userData.dailyStreak = newStreak;
 

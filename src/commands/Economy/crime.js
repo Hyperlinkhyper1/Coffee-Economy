@@ -92,6 +92,7 @@ export default {
 
             if (isSuccess) {
                 userData.wallet = (userData.wallet || 0) + amountEarned;
+                userData.stats.totalGained = (userData.stats.totalGained || 0) + amountEarned;
                 
                 await setEconomyData(client, guildId, userId, userData);
                 

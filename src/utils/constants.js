@@ -41,7 +41,8 @@ export const DEFAULT_ECONOMY_DATA = {
         mastermindWins: 0,
         hangmanWins: 0,
         tttWins: 0,
-        matchpairsWins: 0
+        matchpairsWins: 0,
+        totalGained: 0
     }
 };
 
