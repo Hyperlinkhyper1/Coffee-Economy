@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed } from '../../utils/embeds.js';
 import { getEconomyData, formatCurrency } from '../../utils/economy.js';
+import { getJob } from '../../utils/jobs.js';
 import { withErrorHandling } from '../../utils/errorHandler.js';
 
 export default {
@@ -61,14 +62,42 @@ export default {
         const totalMoney = wallet + bank;
         const networth = userData.stats?.totalGained || 0;
 
+        const currentJob = getJob(userData.job || 'janitor');
+        
+        // Count medals
+        const medals = {
+            Bronze: 0,
+            Silver: 0,
+            Gold: 0,
+            Platinum: 0,
+            Diamond: 0,
+            'Coffee Champion': 0
+        };
+
+        if (userData.announcedAchievements) {
+            userData.announcedAchievements.forEach(achievementKey => {
+                const [_, level] = achievementKey.split(':');
+                if (medals.hasOwnProperty(level)) {
+                    medals[level]++;
+                }
+            });
+        }
+
+        const medalString = Object.entries(medals)
+            .filter(([_, count]) => count > 0)
+            .map(([level, count]) => `**${level}:** ${count}`)
+            .join(' | ') || 'None';
+
         const embed = createEmbed({
             title: `👤 User Statistics: ${user.username}`,
             thumbnail: user.displayAvatarURL({ dynamic: true })
         }).addFields(
             { name: '🆔 User ID', value: `\`${user.id}\``, inline: true },
+            { name: '💼 Current Job', value: `${currentJob.emoji} **${currentJob.name}**`, inline: true },
             { name: '💬 Messages Sent', value: `**${messagesSent.toLocaleString()}**`, inline: true },
             { name: '💰 Current Total Money', value: `**${formatCurrency(totalMoney)}**`, inline: true },
             { name: '📈 Networth (Total Gained)', value: `**${formatCurrency(networth)}**`, inline: true },
+            { name: '🏆 Medals', value: medalString, inline: false },
             { name: '📅 Joined Discord', value: joinDiscord, inline: false },
             { name: '📥 Joined Server', value: joinServer, inline: false },
             { name: '🎭 Roles', value: roles, inline: false }
