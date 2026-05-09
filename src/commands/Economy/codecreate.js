@@ -3,6 +3,7 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
+import { shopItems } from '../../config/shop/items.js';
 
 export default {
     data: new SlashCommandBuilder()
