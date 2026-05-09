@@ -69,8 +69,12 @@ export default {
                 return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
             }
 
+            const participantsList = lottery.participants.length > 0 
+                ? lottery.participants.map(id => `<@${id}>`).join(', ') 
+                : 'No participants yet';
+
             const embed = infoEmbed(
-                `**Participants:** ${lottery.participants.length}\n` +
+                `**Participants (${lottery.participants.length}):**\n${participantsList}\n\n` +
                 `**End Time:** <t:${Math.floor(lottery.endTime / 1000)}:F> (<t:${Math.floor(lottery.endTime / 1000)}:R>)\n` +
                 `**Cost to Join:** $${LOTTERY_COST.toLocaleString()}`,
                 "🎰 Active Lottery"
