@@ -9,8 +9,8 @@ import { logger } from '../../utils/logger.js';
 const EMOJIS = ['🍎', '🍌', '🍇', '🍊', '🍓', '🍒', '🍍', '🥭', '🥝', '🍉'];
 const GRID_ROWS = 4;
 const GRID_COLS = 5;
-const MAX_LIVES = 15;
-const REWARD_AMOUNT = 250;
+const MAX_LIVES = 12;
+const REWARD_AMOUNT = 500;
 
 export default {
     data: new SlashCommandBuilder()
