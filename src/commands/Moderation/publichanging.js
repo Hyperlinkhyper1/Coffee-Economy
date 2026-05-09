@@ -12,7 +12,7 @@ export default {
             option.setName('target')
                 .setDescription('The user to hang')
                 .setRequired(true))
-        .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
         const target = interaction.options.getUser('target');
