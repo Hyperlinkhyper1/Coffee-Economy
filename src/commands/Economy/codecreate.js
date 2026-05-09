@@ -21,10 +21,32 @@ export default {
         )
         .addStringOption(option =>
             option.setName('item')
-                .setDescription('The item the code gives (Coming soon)')
+                .setDescription('The item the code gives')
                 .setRequired(false)
+                .setAutocomplete(true)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+    async autocomplete(interaction) {
+        try {
+            const focusedValue = interaction.options.getFocused().toLowerCase();
+            
+            // Show all items from the shop
+            const choices = shopItems.map(item => ({
+                name: `${item.name} (${item.id})`,
+                value: item.id
+            }));
+
+            const filtered = choices.filter(choice => choice.name.toLowerCase().includes(focusedValue));
+            
+            await interaction.respond(
+                filtered.slice(0, 25)
+            ).catch(() => {});
+        } catch (error) {
+            logger.error('Error in codecreate autocomplete:', error);
+            await interaction.respond([]).catch(() => {});
+        }
+    },
 
     execute: withErrorHandling(async (interaction, config, client) => {
         // Only server owner check
