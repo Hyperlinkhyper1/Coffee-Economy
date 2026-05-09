@@ -1,4 +1,58 @@
-export const shopItems = [];
+export const shopItems = [
+    {
+        id: 'fishing_rod',
+        name: 'Fishing Rod',
+        emoji: '🎣',
+        price: 500,
+        description: 'Catch fish to sell for profit!',
+        type: 'tool'
+    },
+    {
+        id: 'hunting_rifle',
+        name: 'Hunting Rifle',
+        emoji: '🔫',
+        price: 1000,
+        description: 'Hunt animals for meat and fur!',
+        type: 'tool'
+    },
+    {
+        id: 'laptop',
+        name: 'Laptop',
+        emoji: '💻',
+        price: 2000,
+        description: 'Work as a programmer for higher pay!',
+        type: 'tool',
+        workMultiplier: 1.5
+    },
+    {
+        id: 'bank_loan',
+        name: 'Bank Loan',
+        emoji: '🏦',
+        price: 5000,
+        description: 'Increases your bank capacity by 50,000!',
+        type: 'upgrade',
+        effect: 'bank_capacity',
+        value: 50000
+    },
+    {
+        id: 'lottery_ticket',
+        name: 'Lottery Ticket',
+        emoji: '🎫',
+        price: 100,
+        description: 'A chance to win big!',
+        type: 'consumable',
+        use: 'gamble'
+    },
+    {
+        id: 'before_20k_card',
+        name: 'Before 20k Trading Card',
+        emoji: '🃏',
+        price: 0,
+        description: 'A rare collectible for early supporters!',
+        type: 'collectible',
+        purchasable: false
+    }
+];
 
 export function getItemById(itemId) {
     return shopItems.find(item => item.id === itemId);

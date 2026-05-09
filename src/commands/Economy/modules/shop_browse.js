@@ -6,12 +6,13 @@ import { logger } from '../../../utils/logger.js';
 export default {
     async execute(interaction, config, client) {
         try {
+            const buyableItems = shopItems.filter(item => item.purchasable !== false);
             const TARGET_MAX_PAGES = 3;
-            const ITEMS_PER_PAGE = Math.max(1, Math.ceil(shopItems.length / TARGET_MAX_PAGES));
-            const totalPages = Math.max(1, Math.ceil(shopItems.length / ITEMS_PER_PAGE));
+            const ITEMS_PER_PAGE = Math.max(1, Math.ceil(buyableItems.length / TARGET_MAX_PAGES));
+            const totalPages = Math.max(1, Math.ceil(buyableItems.length / ITEMS_PER_PAGE));
             let currentPage = 1;
 
-            if (shopItems.length === 0) {
+            if (buyableItems.length === 0) {
                 const embed = new EmbedBuilder()
                     .setTitle('🛒 Store')
                     .setColor(getColor('primary'))
@@ -21,7 +22,7 @@ export default {
 
             const createShopEmbed = (page) => {
                 const startIndex = (page - 1) * ITEMS_PER_PAGE;
-                const pageItems = shopItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+                const pageItems = buyableItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
                 const embed = new EmbedBuilder()
                     .setTitle('🛒 Store')
                     .setColor(getColor('primary'))
