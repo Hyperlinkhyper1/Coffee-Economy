@@ -14,7 +14,7 @@ const TEXT_COLORS = [
 
 const CARDS_PER_PAGE = 10;
 
-async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilter = 'all') {
+async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilter = 'Common') { // Default to 'Common'
     const allPacks = await CardService.getPacks(client, guildId);
     let allCards = [];
 
@@ -26,8 +26,14 @@ async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilte
     }
 
     let filteredCards = allCards;
+    let embedColor = null; // Default color
+
     if (rarityFilter !== 'all') {
         filteredCards = allCards.filter(card => card.rarity.toLowerCase() === rarityFilter.toLowerCase());
+        const rarityDetails = await CardService.getRarityDetails(client, guildId, rarityFilter);
+        if (rarityDetails) {
+            embedColor = rarityDetails.color;
+        }
     }
 
     const totalPages = Math.ceil(filteredCards.length / CARDS_PER_PAGE);
@@ -37,7 +43,7 @@ async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilte
     const end = start + CARDS_PER_PAGE;
     const cardsToDisplay = filteredCards.slice(start, end);
 
-    const embed = createEmbed('💳 Card Index')
+    const embed = createEmbed('💳 Card Index', embedColor) // Pass color to createEmbed
         .setDescription(`Displaying cards (Rarity: ${rarityFilter === 'all' ? 'All' : rarityFilter})`)
         .setFooter({ text: `Page ${currentPage + 1} of ${totalPages || 1}` });
 
@@ -53,12 +59,15 @@ async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilte
         });
     }
 
-    const rarities = await CardService.getRarities(client, guildId);
+    const rarityNames = await CardService.getRarities(client, guildId); // Get just names
+    const allRarityDetails = await Promise.all(rarityNames.map(name => CardService.getRarityDetails(client, guildId, name)));
+    const validRarityDetails = allRarityDetails.filter(Boolean); // Filter out nulls
+
     const rarityOptions = [{ label: 'All Rarities', value: 'all', default: rarityFilter === 'all' }];
-    rarityOptions.push(...rarities.map(r => ({
-        label: r,
-        value: r,
-        default: rarityFilter.toLowerCase() === r.toLowerCase()
+    rarityOptions.push(...validRarityDetails.map(r => ({
+        label: r.name,
+        value: r.name,
+        default: rarityFilter.toLowerCase() === r.name.toLowerCase()
     })));
 
     const selectMenu = new StringSelectMenuBuilder()
@@ -389,7 +398,7 @@ export default {
             collector.on('collect', async i => {
                 await i.deferUpdate();
                 let currentPage = 0;
-                let rarityFilter = 'all';
+                let rarityFilter = 'Common'; // Default to 'Common' on interaction
 
                 if (i.customId.startsWith('cardindex_prev_') || i.customId.startsWith('cardindex_next_')) {
                     const parts = i.customId.split('_');

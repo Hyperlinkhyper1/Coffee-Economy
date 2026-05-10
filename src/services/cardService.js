@@ -205,7 +205,7 @@ class CardService {
     }
 
     /**
-     * Get all rarities in guild
+     * Get all rarities in guild (names only)
      */
     static async getRarities(client, guildId) {
         try {
@@ -215,6 +215,19 @@ class CardService {
         } catch (error) {
             logger.warn(`[CARDS] Failed to get rarities for guild ${guildId}`, error);
             return [];
+        }
+    }
+
+    /**
+     * Get full details of a specific rarity
+     */
+    static async getRarityDetails(client, guildId, rarityName) {
+        try {
+            const rarityKey = `cards:rarity:${guildId}:${rarityName.toLowerCase()}`;
+            return await client.db.get(rarityKey);
+        } catch (error) {
+            logger.warn(`[CARDS] Failed to get details for rarity ${rarityName}`, error);
+            return null;
         }
     }
 
@@ -335,4 +348,3 @@ class CardService {
 }
 
 export default CardService;
-
