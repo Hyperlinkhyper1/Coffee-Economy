@@ -13,6 +13,7 @@ import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { ForumAlertService } from './services/forumAlertService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
+import CardService from './services/cardService.js'; // Import CardService
 
 class TitanBot extends Client {
   constructor() {
@@ -233,6 +234,19 @@ class TitanBot extends Client {
     cron.schedule('* * * * *', () => checkGiveaways(this));
     cron.schedule('*/15 * * * *', () => this.updateAllCounters());
     cron.schedule('* * * * *', () => ForumAlertService.processAlerts(this));
+
+    // New cron job for card pack shop restock every 15 minutes
+    cron.schedule('*/15 * * * *', async () => {
+      logger.info('[CRON] Running scheduled card pack shop restock...');
+      for (const [guildId] of this.guilds.cache) {
+        try {
+          await CardService.restockShop(this, guildId);
+          logger.debug(`[CRON] Restocked card shop for guild ${guildId}`);
+        } catch (error) {
+          logger.error(`[CRON] Error restocking card shop for guild ${guildId}:`, error);
+        }
+      }
+    });
   }
 
   async updateAllCounters() {
@@ -383,6 +397,3 @@ try {
 }
 
 export default TitanBot;
-
-
-
