@@ -126,7 +126,7 @@ export default {
                 for (const packName of packs) {
                     const pack = await CardService.getPack(interaction.client, guildId, packName);
                     if (pack && pack.cards) {
-                        pack.cards.forEach(card => {
+                        for (const card of pack.cards) {
                             if (subcommand === 'sellcard') {
                                 const inventory = await CardService.getUserCards(
                                     interaction.client,
@@ -140,7 +140,7 @@ export default {
                             } else {
                                 cards.add(card.name);
                             }
-                        });
+                        }
                     }
                 }
 
@@ -243,8 +243,7 @@ export default {
 
             const cardName = interaction.options.getString('cardname');
 
-            const economy = { getEconomyData, setEconomyData };
-            const result = await CardService.sellCard(client, guildId, interaction.user.id, cardName, economy);
+            const result = await CardService.sellCard(client, guildId, interaction.user.id, cardName);
 
             const userData = await getEconomyData(client, guildId, interaction.user.id);
 

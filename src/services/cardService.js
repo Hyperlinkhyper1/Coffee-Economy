@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger.js';
-import { createError, ErrorTypes } from '../utils/errorHandler.js';
+import { createError, ErrorTypes, TitanBotError } from '../utils/errorHandler.js';
+import { getEconomyData, setEconomyData } from '../utils/economy.js';
 
 class CardService {
     /**
@@ -37,7 +38,7 @@ class CardService {
             logger.info(`[CARDS] Pack created: ${packName}`, { guildId, packName });
             return packData;
         } catch (error) {
-            if (error.type === ErrorTypes.VALIDATION) throw error;
+            if (error instanceof TitanBotError) throw error;
             throw createError(
                 "Failed to create card pack",
                 ErrorTypes.DATABASE,
@@ -83,7 +84,7 @@ class CardService {
             logger.info(`[CARDS] Rarity created: ${rarityName}`, { guildId, rarityName, color, chance });
             return rarityData;
         } catch (error) {
-            if (error.type === ErrorTypes.VALIDATION) throw error;
+            if (error instanceof TitanBotError) throw error;
             throw createError(
                 "Failed to add rarity",
                 ErrorTypes.DATABASE,
@@ -141,7 +142,7 @@ class CardService {
             logger.info(`[CARDS] Card added to pack`, { guildId, packName, cardName, rarity, value });
             return card;
         } catch (error) {
-            if (error.type === ErrorTypes.VALIDATION) throw error;
+            if (error instanceof TitanBotError) throw error;
             throw createError(
                 "Failed to add card to pack",
                 ErrorTypes.DATABASE,
@@ -229,7 +230,7 @@ class CardService {
     /**
      * Sell card from user's inventory
      */
-    static async sellCard(client, guildId, userId, cardName, economy) {
+    static async sellCard(client, guildId, userId, cardName) {
         try {
             // Get all packs to find the card and its value
             const packs = await this.getPacks(client, guildId);
@@ -277,14 +278,14 @@ class CardService {
             await client.database.set(inventoryKey, inventory);
 
             // Add money to user
-            const userData = await economy.getEconomyData(client, guildId, userId);
+            const userData = await getEconomyData(client, guildId, userId);
             userData.wallet = (userData.wallet || 0) + cardValue;
-            await economy.setEconomyData(client, guildId, userId, userData);
+            await setEconomyData(client, guildId, userId, userData);
 
             logger.info(`[CARDS] Card sold`, { guildId, userId, cardName, cardValue });
             return { cardValue, cardName, cardRarity };
         } catch (error) {
-            if (error.type === ErrorTypes.VALIDATION) throw error;
+            if (error instanceof TitanBotError) throw error;
             throw createError(
                 "Failed to sell card",
                 ErrorTypes.DATABASE,
