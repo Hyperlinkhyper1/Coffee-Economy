@@ -8,7 +8,8 @@ import { JOBS } from '../../utils/jobs.js'; // Import JOBS data
 export default {
     name: 'data_jobs',
     async execute(interaction, client) {
-        const deferred = await InteractionHelper.safeDefer(interaction, true); // Ephemeral reply
+        // Corrected call to safeDefer: pass an object { ephemeral: true }
+        const deferred = await InteractionHelper.safeDefer(interaction, { ephemeral: true });
         if (!deferred) return;
 
         // More specific dev check (example - replace with actual dev IDs)
