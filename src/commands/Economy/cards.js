@@ -176,6 +176,35 @@ export default {
         )
         .addSubcommand(subcommand =>
             subcommand
+                .setName('editrarity')
+                .setDescription('Edit an existing rarity type (Admin only)')
+                .addStringOption(option =>
+                    option.setName('rarityname')
+                        .setDescription('Current name of the rarity to edit')
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                )
+                .addStringOption(option =>
+                    option.setName('newrarityname')
+                        .setDescription('New name for the rarity (optional)')
+                        .setRequired(false)
+                )
+                .addStringOption(option =>
+                    option.setName('newcolor')
+                        .setDescription('New text color for the rarity (optional)')
+                        .setRequired(false)
+                        .setAutocomplete(true)
+                )
+                .addNumberOption(option =>
+                    option.setName('newchance')
+                        .setDescription('New drop chance percentage (e.g., 2.5, 5, 10) (optional)')
+                        .setRequired(false)
+                        .setMinValue(0)
+                        .setMaxValue(100)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('removerarity')
                 .setDescription('Remove a rarity type (Admin only)')
                 .addStringOption(option =>
@@ -270,7 +299,7 @@ export default {
                 await interaction.respond(
                     filtered.slice(0, 25).map(p => ({ name: p, value: p }))
                 );
-            } else if (focusedOption.name === 'rarity') {
+            } else if (focusedOption.name === 'rarity' || focusedOption.name === 'rarityname') { // Added rarityname
                 const rarities = await CardService.getRarities(interaction.client, guildId);
                 const filtered = rarities.filter(r =>
                     r.toLowerCase().includes(focusedOption.value.toLowerCase())
@@ -278,7 +307,7 @@ export default {
                 await interaction.respond(
                     filtered.slice(0, 25).map(r => ({ name: r, value: r }))
                 );
-            } else if (focusedOption.name === 'color') {
+            } else if (focusedOption.name === 'color' || focusedOption.name === 'newcolor') { // Added newcolor
                 const filtered = TEXT_COLORS.filter(c =>
                     c.toLowerCase().includes(focusedOption.value.toLowerCase())
                 );
@@ -329,7 +358,7 @@ export default {
         const guildId = interaction.guildId;
 
         // Check admin permissions for admin commands
-        if (['createpack', 'addtopack', 'addrarity', 'removerarity', 'shopaddpack', 'shopremovepack', 'shoprestock'].includes(subcommand)) {
+        if (['createpack', 'addtopack', 'addrarity', 'editrarity', 'removerarity', 'shopaddpack', 'shopremovepack', 'shoprestock'].includes(subcommand)) {
             if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
                 throw createError(
                     "Insufficient permissions",
@@ -371,6 +400,43 @@ export default {
                 `Successfully created rarity **${rarity.name}**!\n` +
                 `**Color:** ${rarity.color}\n` +
                 `**Drop Chance:** ${rarity.chance}%`
+            );
+
+            return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        }
+
+        if (subcommand === 'editrarity') {
+            const deferred = await InteractionHelper.safeDefer(interaction);
+            if (!deferred) return;
+
+            const rarityName = interaction.options.getString('rarityname');
+            const newRarityName = interaction.options.getString('newrarityname');
+            const newColor = interaction.options.getString('newcolor');
+            const newChance = interaction.options.getNumber('newchance');
+
+            if (!newRarityName && !newColor && newChance === null) {
+                throw createError(
+                    "No changes specified",
+                    ErrorTypes.VALIDATION,
+                    "You must provide at least one new value (name, color, or chance) to edit the rarity."
+                );
+            }
+
+            const updatedRarity = await CardService.editRarity(
+                client,
+                guildId,
+                rarityName,
+                newRarityName,
+                newColor,
+                newChance
+            );
+
+            const embed = successEmbed(
+                "⭐ Rarity Edited",
+                `Successfully updated rarity **${rarityName}**!` +
+                `\n**New Name:** ${updatedRarity.name}` +
+                `\n**New Color:** ${updatedRarity.color}` +
+                `\n**New Drop Chance:** ${updatedRarity.chance}%`
             );
 
             return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
