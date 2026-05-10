@@ -9,6 +9,26 @@ import CardService from '../../services/cardService.js';
 
 const SHOP_ITEMS = shopItems;
 
+// ANSI color map for rarity colors
+const ANSI_COLOR_MAP = {
+    'Black': '1;30',
+    'Dark Blue': '1;34',
+    'Dark Green': '1;32',
+    'Dark Cyan': '1;36',
+    'Dark Red': '1;31',
+    'Dark Magenta': '1;35',
+    'Dark Yellow': '1;33',
+    'Light Gray': '1;37', // Standard white/light gray
+    'Dark Gray': '1;90', // Bright black/dark gray
+    'Blue': '1;94',      // Bright blue
+    'Green': '1;92',     // Bright green
+    'Cyan': '1;96',      // Bright cyan
+    'Red': '1;91',       // Bright red
+    'Magenta': '1;95',   // Bright magenta
+    'Yellow': '1;93',    // Bright yellow
+    'White': '1;97'      // Bright white
+};
+
 export default {
     data: new SlashCommandBuilder()
         .setName('inventory')
@@ -54,9 +74,9 @@ export default {
                     .map(
                         ([itemId, quantity]) => {
                             const item = SHOP_ITEMS.find(i => i.id === itemId);
-                            const rarityText = item.rarity ? ` [[1;35m${item.rarity}[0m]` : "";
-                            // Using [1;37m for brightest white on name and quantity
-                            return `[1;37m${item.name}: ${quantity}x[0m${rarityText}`;
+                            // Static items don't have rarity, so they'll default to white/light gray
+                            const itemColorCode = ANSI_COLOR_MAP['Light Gray'];
+                            return `[${itemColorCode}m${item.name}: ${quantity}x[0m`;
                         }
                     );
                 hasItems = itemLines.length > 0;
@@ -69,8 +89,9 @@ export default {
                     if (quantity > 0) {
                         const [cardName, rarityName] = cardKey.split(':');
                         const rarityDetails = await CardService.getRarityDetails(client, guildId, rarityName);
-                        const rarityColor = rarityDetails ? rarityDetails.color : '37'; // Default to white
-                        cardLines.push(`[1;${rarityColor}m${cardName}: ${quantity}x [${rarityName}][0m`);
+                        // Get ANSI code from map, default to Light Gray if not found
+                        const colorCode = rarityDetails && ANSI_COLOR_MAP[rarityDetails.color] ? ANSI_COLOR_MAP[rarityDetails.color] : ANSI_COLOR_MAP['Light Gray'];
+                        cardLines.push(`[${colorCode}m${cardName}: ${quantity}x [${rarityName}][0m`);
                     }
                 }
                 hasCards = cardLines.length > 0;
@@ -106,11 +127,3 @@ export default {
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'inventory' })
 };
-
-
-
-
-
-
-
-
