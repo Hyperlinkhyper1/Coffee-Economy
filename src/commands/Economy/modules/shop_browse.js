@@ -65,7 +65,7 @@ export default {
                     }
 
                     if (item.type === 'card_pack') {
-                        valueDescription += `📦 **Stock:** ${item.currentStock}/${item.maxStock}\n`;
+                        valueDescription += `📦 **Stock:** ${item.currentStock}\n`; // Changed this line
                         if (item.currentStock === 0) {
                             valueDescription += `*Currently out of stock.*\n`;
                         }

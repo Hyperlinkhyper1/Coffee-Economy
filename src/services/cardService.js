@@ -340,6 +340,144 @@ class CardService {
     }
 
     /**
+     * Buy a card pack from the shop.
+     */
+    static async buyPack(client, guildId, userId, packId, quantity = 1) {
+        const originalPackName = packId.replace('pack_', '').replace(/_/g, ' '); // Convert 'pack_pack_name' back to 'Pack Name'
+        const packShopKey = `cards:shop:pack:${guildId}:${originalPackName.toLowerCase()}`;
+
+        try {
+            const shopPack = await client.db.get(packShopKey);
+            if (!shopPack) {
+                throw createError(
+                    "Pack Not Found",
+                    ErrorTypes.VALIDATION,
+                    `The card pack **${originalPackName}** is not available in the shop.`
+                );
+            }
+
+            if (quantity < 1) {
+                throw createError(
+                    "Invalid Quantity",
+                    ErrorTypes.VALIDATION,
+                    "You must purchase at least 1 pack."
+                );
+            }
+
+            if (shopPack.currentStock < quantity) {
+                throw createError(
+                    "Out of Stock",
+                    ErrorTypes.VALIDATION,
+                    `There are only **${shopPack.currentStock}** of **${shopPack.packName}** packs left in stock.`
+                );
+            }
+
+            const totalCost = shopPack.cost * quantity;
+            const userData = await getEconomyData(client, guildId, userId);
+
+            if (userData.wallet < totalCost) {
+                throw createError(
+                    "Insufficient Funds",
+                    ErrorTypes.VALIDATION,
+                    `You need **$${totalCost.toLocaleString()}** to purchase ${quantity}x **${shopPack.packName}**, but you only have **$${userData.wallet.toLocaleString()}** in cash.`
+                );
+            }
+
+            // Deduct money
+            userData.wallet -= totalCost;
+
+            // Update pack stock
+            shopPack.currentStock -= quantity;
+
+            // Get the actual card pack details to draw cards from
+            const actualPack = await this.getPack(client, guildId, shopPack.packName);
+            if (!actualPack || !actualPack.cards || actualPack.cards.length === 0) {
+                // Refund money and restock if the pack is empty or doesn't exist
+                userData.wallet += totalCost;
+                shopPack.currentStock += quantity;
+                await client.db.set(packShopKey, shopPack);
+                await setEconomyData(client, guildId, userId, userData);
+                throw createError(
+                    "Empty Pack",
+                    ErrorTypes.VALIDATION,
+                    `The card pack **${shopPack.packName}** is empty and cannot be purchased. Your money has been refunded.`
+                );
+            }
+
+            // Get all rarity chances
+            const rarityNames = await this.getRarities(client, guildId);
+            const allRarityDetails = await Promise.all(rarityNames.map(name => this.getRarityDetails(client, guildId, name)));
+            const validRarityDetails = allRarityDetails.filter(Boolean);
+
+            const purchasedCards = [];
+            for (let i = 0; i < quantity; i++) {
+                // Logic to draw a card from the pack based on rarity chances
+                const drawnCard = this.drawCardFromPack(actualPack.cards, validRarityDetails);
+                if (drawnCard) {
+                    await this.addCardToInventory(client, guildId, userId, drawnCard.name, drawnCard.rarity);
+                    purchasedCards.push(drawnCard);
+                }
+            }
+
+            // Save updated data
+            await client.db.set(packShopKey, shopPack);
+            await setEconomyData(client, guildId, userId, userData);
+
+            logger.info(`[CARDS] User ${userId} purchased ${quantity}x ${shopPack.packName} for ${totalCost}`, { guildId, userId, packName: shopPack.packName, quantity, totalCost });
+
+            return {
+                success: true,
+                message: `You successfully purchased ${quantity}x **${shopPack.packName}** for **$${totalCost.toLocaleString()}**!`,
+                cards: purchasedCards,
+                remainingBalance: userData.wallet
+            };
+
+        } catch (error) {
+            if (error instanceof TitanBotError) throw error;
+            throw createError(
+                "Failed to buy card pack",
+                ErrorTypes.DATABASE,
+                "An error occurred while purchasing the card pack.",
+                { guildId, userId, packId, error: error.message }
+            );
+        }
+    }
+
+    /**
+     * Helper function to draw a random card from a pack based on rarity chances.
+     */
+    static drawCardFromPack(packCards, rarityDetails) {
+        if (!packCards || packCards.length === 0) return null;
+
+        const totalChance = rarityDetails.reduce((sum, r) => sum + r.chance, 0);
+        if (totalChance === 0) {
+            // If no rarity chances are defined, pick a random card directly
+            return packCards[Math.floor(Math.random() * packCards.length)];
+        }
+
+        let random = Math.random() * totalChance;
+        let selectedRarity = null;
+
+        for (const rarity of rarityDetails) {
+            if (random < rarity.chance) {
+                selectedRarity = rarity.name;
+                break;
+            }
+            random -= rarity.chance;
+        }
+
+        if (selectedRarity) {
+            const cardsOfSelectedRarity = packCards.filter(card => card.rarity.toLowerCase() === selectedRarity.toLowerCase());
+            if (cardsOfSelectedRarity.length > 0) {
+                return cardsOfSelectedRarity[Math.floor(Math.random() * cardsOfSelectedRarity.length)];
+            }
+        }
+
+        // Fallback: if no card found for selected rarity or no rarity selected, pick any random card
+        return packCards[Math.floor(Math.random() * packCards.length)];
+    }
+
+    /**
      * Get all packs in guild
      */
     static async getPacks(client, guildId) {
