@@ -244,6 +244,102 @@ class CardService {
     }
 
     /**
+     * Remove a card pack from the shop.
+     */
+    static async removePackFromShop(client, guildId, packName) {
+        const packShopKey = `cards:shop:pack:${guildId}:${packName.toLowerCase()}`;
+        const shopPacksListKey = `cards:shop:packs:${guildId}`;
+
+        try {
+            const existingShopPack = await client.db.get(packShopKey);
+            if (!existingShopPack) {
+                throw createError(
+                    "Pack Not In Shop",
+                    ErrorTypes.VALIDATION,
+                    `Card pack **${packName}** is not currently in the shop.`
+                );
+            }
+
+            // Remove the pack from the shop
+            await client.db.delete(packShopKey);
+
+            // Remove from shop packs list
+            const shopPacksList = await client.db.get(shopPacksListKey, []);
+            const updatedList = shopPacksList.filter(p => p.toLowerCase() !== packName.toLowerCase());
+            await client.db.set(shopPacksListKey, updatedList);
+
+            logger.info(`[CARDS] Pack removed from shop: ${packName}`, { guildId, packName });
+            return true;
+        } catch (error) {
+            if (error instanceof TitanBotError) throw error;
+            throw createError(
+                "Failed to remove pack from shop",
+                ErrorTypes.DATABASE,
+                "An error occurred while removing the pack from the shop.",
+                { guildId, packName, error: error.message }
+            );
+        }
+    }
+
+    /**
+     * Get all pack names currently in the shop for a guild.
+     */
+    static async getShopPacks(client, guildId) {
+        try {
+            const shopPacksListKey = `cards:shop:packs:${guildId}`;
+            return await client.db.get(shopPacksListKey, []);
+        } catch (error) {
+            logger.warn(`[CARDS] Failed to get shop packs for guild ${guildId}`, error);
+            return [];
+        }
+    }
+
+    /**
+     * Get details of a specific pack in the shop.
+     */
+    static async getShopPackDetails(client, guildId, packName) {
+        try {
+            const packShopKey = `cards:shop:pack:${guildId}:${packName.toLowerCase()}`;
+            return await client.db.get(packShopKey);
+        } catch (error) {
+            logger.warn(`[CARDS] Failed to get shop pack details for ${packName} in guild ${guildId}`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Restock all card packs in the shop.
+     */
+    static async restockShop(client, guildId) {
+        try {
+            const shopPacks = await this.getShopPacks(client, guildId);
+            const restockedPacks = [];
+
+            for (const packName of shopPacks) {
+                const packDetails = await this.getShopPackDetails(client, guildId, packName);
+                if (packDetails) {
+                    const newStock = Math.floor(Math.random() * (packDetails.maxStock - packDetails.minStock + 1)) + packDetails.minStock;
+                    packDetails.currentStock = newStock;
+                    packDetails.lastStockUpdate = Date.now();
+                    const packShopKey = `cards:shop:pack:${guildId}:${packName.toLowerCase()}`;
+                    await client.db.set(packShopKey, packDetails);
+                    restockedPacks.push({ name: packName, newStock: newStock });
+                }
+            }
+            logger.info(`[CARDS] Shop restocked for guild ${guildId}`, { guildId, restockedPacks });
+            return restockedPacks;
+        } catch (error) {
+            if (error instanceof TitanBotError) throw error;
+            throw createError(
+                "Failed to restock shop",
+                ErrorTypes.DATABASE,
+                "An error occurred while restocking the shop.",
+                { guildId, error: error.message }
+            );
+        }
+    }
+
+    /**
      * Get all packs in guild
      */
     static async getPacks(client, guildId) {

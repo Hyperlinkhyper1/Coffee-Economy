@@ -214,6 +214,22 @@ export default {
                         .setDescription('Stock range (e.g., "0-4", "1-7"). Refreshes every 15 mins.')
                         .setRequired(true)
                 )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('shopremovepack')
+                .setDescription('Remove a card pack from the shop (Admin only)')
+                .addStringOption(option =>
+                    option.setName('packname')
+                        .setDescription('Name of the pack to remove from the shop')
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('shoprestock')
+                .setDescription('Restock all card packs in the shop immediately (Admin only)')
         ),
 
     async autocomplete(interaction) {
@@ -223,7 +239,17 @@ export default {
 
         try {
             if (focusedOption.name === 'packname') {
-                const packs = await CardService.getPacks(interaction.client, guildId);
+                let packs = [];
+                if (subcommand === 'shopaddpack' || subcommand === 'addtopack' || subcommand === 'createpack') {
+                    // For adding/creating, suggest all existing packs
+                    packs = await CardService.getPacks(interaction.client, guildId);
+                } else if (subcommand === 'shopremovepack') {
+                    // For removing from shop, suggest only packs currently in the shop
+                    packs = await CardService.getShopPacks(interaction.client, guildId);
+                } else {
+                    packs = await CardService.getPacks(interaction.client, guildId);
+                }
+
                 const filtered = packs.filter(p =>
                     p.toLowerCase().includes(focusedOption.value.toLowerCase())
                 );
@@ -289,7 +315,7 @@ export default {
         const guildId = interaction.guildId;
 
         // Check admin permissions for admin commands
-        if (['createpack', 'addtopack', 'addrarity', 'removerarity', 'shopaddpack'].includes(subcommand)) {
+        if (['createpack', 'addtopack', 'addrarity', 'removerarity', 'shopaddpack', 'shopremovepack', 'shoprestock'].includes(subcommand)) {
             if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
                 throw createError(
                     "Insufficient permissions",
@@ -457,6 +483,45 @@ export default {
                 `Successfully added card pack **${packName}** to the shop!\n` +
                 `**Cost:** $${cost.toLocaleString()}\n` +
                 `**Stock Range:** ${minStock}-${maxStock} (refreshes every 15 minutes)`
+            );
+
+            return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        }
+
+        if (subcommand === 'shopremovepack') {
+            const deferred = await InteractionHelper.safeDefer(interaction);
+            if (!deferred) return;
+
+            const packName = interaction.options.getString('packname');
+
+            await CardService.removePackFromShop(client, guildId, packName);
+
+            const embed = successEmbed(
+                "💳 Shop Pack Removed",
+                `Successfully removed card pack **${packName}** from the shop.`
+            );
+
+            return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        }
+
+        if (subcommand === 'shoprestock') {
+            const deferred = await InteractionHelper.safeDefer(interaction);
+            if (!deferred) return;
+
+            const restockedPacks = await CardService.restockShop(client, guildId);
+
+            if (restockedPacks.length === 0) {
+                const embed = infoEmbed(
+                    "💳 Shop Restock",
+                    "No card packs found in the shop to restock."
+                );
+                return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+            }
+
+            const restockDetails = restockedPacks.map(p => `**${p.name}**: New Stock ${p.newStock}`).join('\n');
+            const embed = successEmbed(
+                "💳 Shop Restocked!",
+                `The following card packs have been restocked:\n${restockDetails}`
             );
 
             return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
