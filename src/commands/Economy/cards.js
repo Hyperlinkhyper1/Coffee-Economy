@@ -73,7 +73,7 @@ export default {
                     option.setName('chance')
                         .setDescription('Drop chance percentage (e.g., 2.5, 5, 10)')
                         .setRequired(true)
-                        .setMinValue(0.1)
+                        .setMinValue(0)
                         .setMaxValue(100)
                 )
         )
@@ -294,4 +294,3 @@ export default {
         }
     }, { command: 'cards' })
 };
-
