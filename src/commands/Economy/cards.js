@@ -192,6 +192,28 @@ export default {
             subcommand
                 .setName('cardindex')
                 .setDescription('View all available cards')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('shopaddpack')
+                .setDescription('Add a card pack to the shop (Admin only)')
+                .addStringOption(option =>
+                    option.setName('packname')
+                        .setDescription('Name of the pack to add to the shop')
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                )
+                .addIntegerOption(option =>
+                    option.setName('cost')
+                        .setDescription('Amount of money the pack costs')
+                        .setRequired(true)
+                        .setMinValue(0)
+                )
+                .addStringOption(option =>
+                    option.setName('stockrange')
+                        .setDescription('Stock range (e.g., "0-4", "1-7"). Refreshes every 15 mins.')
+                        .setRequired(true)
+                )
         ),
 
     async autocomplete(interaction) {
@@ -267,7 +289,7 @@ export default {
         const guildId = interaction.guildId;
 
         // Check admin permissions for admin commands
-        if (['createpack', 'addtopack', 'addrarity', 'removerarity'].includes(subcommand)) {
+        if (['createpack', 'addtopack', 'addrarity', 'removerarity', 'shopaddpack'].includes(subcommand)) {
             if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
                 throw createError(
                     "Insufficient permissions",
@@ -383,6 +405,59 @@ export default {
                 cardName: result.cardName,
                 value: result.cardValue
             });
+
+            return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        }
+
+        if (subcommand === 'shopaddpack') {
+            const deferred = await InteractionHelper.safeDefer(interaction);
+            if (!deferred) return;
+
+            const packName = interaction.options.getString('packname');
+            const cost = interaction.options.getInteger('cost');
+            const stockRange = interaction.options.getString('stockrange');
+
+            // Validate stockRange format (e.g., "0-4")
+            const stockRangeRegex = /^(\d+)-(\d+)$/;
+            const match = stockRange.match(stockRangeRegex);
+
+            if (!match) {
+                throw createError(
+                    "Invalid Stock Range",
+                    ErrorTypes.VALIDATION,
+                    "The stock range must be in the format 'min-max', e.g., '0-4' or '1-7'."
+                );
+            }
+
+            const minStock = parseInt(match[1]);
+            const maxStock = parseInt(match[2]);
+
+            if (minStock > maxStock) {
+                throw createError(
+                    "Invalid Stock Range",
+                    ErrorTypes.VALIDATION,
+                    "The minimum stock value cannot be greater than the maximum stock value."
+                );
+            }
+
+            // Check if the pack exists
+            const packExists = await CardService.getPack(client, guildId, packName);
+            if (!packExists) {
+                throw createError(
+                    "Pack Not Found",
+                    ErrorTypes.VALIDATION,
+                    `A card pack named **${packName}** does not exist. Please create it first.`
+                );
+            }
+
+            await CardService.addPackToShop(client, guildId, packName, cost, minStock, maxStock);
+
+            const embed = successEmbed(
+                "💳 Shop Pack Added",
+                `Successfully added card pack **${packName}** to the shop!\n` +
+                `**Cost:** $${cost.toLocaleString()}\n` +
+                `**Stock Range:** ${minStock}-${maxStock} (refreshes every 15 minutes)`
+            );
 
             return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         }

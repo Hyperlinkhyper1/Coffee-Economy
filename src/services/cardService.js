@@ -191,6 +191,59 @@ class CardService {
     }
 
     /**
+     * Add a card pack to the shop.
+     */
+    static async addPackToShop(client, guildId, packName, cost, minStock, maxStock) {
+        const packShopKey = `cards:shop:pack:${guildId}:${packName.toLowerCase()}`;
+        const shopPacksListKey = `cards:shop:packs:${guildId}`;
+
+        try {
+            // 1. Validate that the packName actually exists as a created card pack.
+            const existingPack = await this.getPack(client, guildId, packName);
+            if (!existingPack) {
+                throw createError(
+                    "Pack Not Found",
+                    ErrorTypes.VALIDATION,
+                    `A card pack named **${packName}** does not exist. Please create it first.`
+                );
+            }
+
+            // Initialize currentStock to a random value within minStock and maxStock.
+            const currentStock = Math.floor(Math.random() * (maxStock - minStock + 1)) + minStock;
+
+            const shopPackData = {
+                packName: packName,
+                cost: cost,
+                minStock: minStock,
+                maxStock: maxStock,
+                currentStock: currentStock,
+                lastStockUpdate: Date.now(),
+                addedAt: Date.now()
+            };
+
+            await client.db.set(packShopKey, shopPackData);
+
+            // Add to shop packs list
+            const shopPacksList = await client.db.get(shopPacksListKey, []);
+            if (!shopPacksList.some(p => p.toLowerCase() === packName.toLowerCase())) {
+                shopPacksList.push(packName);
+                await client.db.set(shopPacksListKey, shopPacksList);
+            }
+
+            logger.info(`[CARDS] Pack added to shop: ${packName}`, { guildId, packName, cost, minStock, maxStock, currentStock });
+            return shopPackData;
+        } catch (error) {
+            if (error instanceof TitanBotError) throw error;
+            throw createError(
+                "Failed to add pack to shop",
+                ErrorTypes.DATABASE,
+                "An error occurred while adding the pack to the shop.",
+                { guildId, packName, error: error.message }
+            );
+        }
+    }
+
+    /**
      * Get all packs in guild
      */
     static async getPacks(client, guildId) {
