@@ -5,6 +5,7 @@ import { getEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import CardService from '../../services/cardService.js';
 
 const SHOP_ITEMS = shopItems;
 
@@ -34,11 +35,16 @@ export default {
             }
 
             const inventory = userData.inventory || {};
+            const userCards = await CardService.getUserCards(client, guildId, userId);
 
             let inventoryDescription = "Your inventory is currently empty.";
+            let hasItems = false;
+            let hasCards = false;
 
+            // Process shop items
+            let itemLines = [];
             if (Object.keys(inventory).length > 0) {
-                const inventoryLines = Object.entries(inventory)
+                itemLines = Object.entries(inventory)
                     .filter(
                         ([itemId, quantity]) => {
                             const item = SHOP_ITEMS.find(i => i.id === itemId);
@@ -53,14 +59,43 @@ export default {
                             return `[1;37m${item.name}: ${quantity}x[0m${rarityText}`;
                         }
                     );
-                
-                inventoryDescription = "```ansi\n" + inventoryLines.join("\n") + "\n```";
+                hasItems = itemLines.length > 0;
+            }
+
+            // Process cards
+            let cardLines = [];
+            if (Object.keys(userCards).length > 0) {
+                for (const [cardKey, quantity] of Object.entries(userCards)) {
+                    if (quantity > 0) {
+                        const [cardName, rarityName] = cardKey.split(':');
+                        const rarityDetails = await CardService.getRarityDetails(client, guildId, rarityName);
+                        const rarityColor = rarityDetails ? rarityDetails.color : '37'; // Default to white
+                        cardLines.push(`[1;${rarityColor}m${cardName}: ${quantity}x [${rarityName}][0m`);
+                    }
+                }
+                hasCards = cardLines.length > 0;
+            }
+
+            // Combine descriptions
+            if (hasItems || hasCards) {
+                let descriptionParts = [];
+
+                if (hasItems) {
+                    descriptionParts.push("**🛒 Shop Items:**\n```ansi\n" + itemLines.join("\n") + "\n```");
+                }
+
+                if (hasCards) {
+                    descriptionParts.push("**🎴 Cards:**\n```ansi\n" + cardLines.join("\n") + "\n```");
+                }
+
+                inventoryDescription = descriptionParts.join("\n\n");
             }
 
             logger.info(`[ECONOMY] Inventory retrieved`, { 
                 userId, 
                 guildId,
-                itemCount: Object.keys(inventory).length
+                itemCount: Object.keys(inventory).length,
+                cardCount: Object.keys(userCards).length
             });
 
             const embed = createEmbed({ 
@@ -71,6 +106,10 @@ export default {
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'inventory' })
 };
+
+
+
+
 
 
 
