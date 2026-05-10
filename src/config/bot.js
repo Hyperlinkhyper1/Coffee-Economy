@@ -127,6 +127,7 @@ export const botConfig = {
       'Magenta': '#FF00FF',
       'Yellow': '#FFFF00',
       'White': '#FFFFFF',
+      'Common': '#FFFFFF', // Added Common rarity color
 
       // Feature-specific colors.
       giveaway: {
@@ -532,10 +533,14 @@ if (configErrors.length > 0) {
 export const BotConfig = botConfig;
 
 export function getColor(path, fallback = "#99AAB5") {
-  
-  if (typeof path === "number") return path;
+  logger.debug(`[GETCOLOR] Attempting to resolve color for path: ${path}`);
+
+  if (typeof path === "number") {
+    logger.debug(`[GETCOLOR] Path is number, returning: ${path}`);
+    return path;
+  }
   if (typeof path === "string" && path.startsWith("#")) {
-    
+    logger.debug(`[GETCOLOR] Path is hex string, converting to int: ${parseInt(path.replace("#", ""), 16)}`);
     return parseInt(path.replace("#", ""), 16);
   }
   const result = path
@@ -547,8 +552,10 @@ export function getColor(path, fallback = "#99AAB5") {
   
   // Convert the result to integer if it's a hex string
   if (typeof result === "string" && result.startsWith("#")) {
+    logger.debug(`[GETCOLOR] Resolved result is hex string, converting to int: ${parseInt(result.replace("#", ""), 16)}`);
     return parseInt(result.replace("#", ""), 16);
   }
+  logger.debug(`[GETCOLOR] Resolved result: ${result}`);
   return result;
 }
 
