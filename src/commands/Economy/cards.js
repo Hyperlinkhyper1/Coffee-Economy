@@ -69,12 +69,23 @@ export default {
                         .setRequired(true)
                         .setAutocomplete(true)
                 )
-                .addIntegerOption(option =>
+                .addNumberOption(option =>
                     option.setName('chance')
-                        .setDescription('Drop chance percentage (1-100)')
+                        .setDescription('Drop chance percentage (e.g., 2.5, 5, 10)')
                         .setRequired(true)
-                        .setMinValue(1)
+                        .setMinValue(0.1)
                         .setMaxValue(100)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('removerarity')
+                .setDescription('Remove a rarity type (Admin only)')
+                .addStringOption(option =>
+                    option.setName('rarity')
+                        .setDescription('Rarity to remove')
+                        .setRequired(true)
+                        .setAutocomplete(true)
                 )
         )
         .addSubcommand(subcommand =>
@@ -195,7 +206,7 @@ export default {
 
             const rarityName = interaction.options.getString('rarityname');
             const color = interaction.options.getString('color');
-            const chance = interaction.options.getInteger('chance');
+            const chance = interaction.options.getNumber('chance');
 
             const rarity = await CardService.addRarity(client, guildId, rarityName, color, chance);
 
@@ -204,6 +215,22 @@ export default {
                 `Successfully created rarity **${rarity.name}**!\n` +
                 `**Color:** ${rarity.color}\n` +
                 `**Drop Chance:** ${rarity.chance}%`
+            );
+
+            return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        }
+
+        if (subcommand === 'removerarity') {
+            const deferred = await InteractionHelper.safeDefer(interaction);
+            if (!deferred) return;
+
+            const rarityName = interaction.options.getString('rarity');
+
+            await CardService.removeRarity(client, guildId, rarityName);
+
+            const embed = successEmbed(
+                "⭐ Rarity Removed",
+                `Successfully removed rarity **${rarityName}**!`
             );
 
             return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });

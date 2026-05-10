@@ -95,6 +95,44 @@ class CardService {
     }
 
     /**
+     * Remove rarity type
+     */
+    static async removeRarity(client, guildId, rarityName) {
+        const rarityKey = `cards:rarity:${guildId}:${rarityName.toLowerCase()}`;
+        const raritiesListKey = `cards:rarities:${guildId}`;
+
+        try {
+            const existingRarity = await client.db.get(rarityKey);
+            if (!existingRarity) {
+                throw createError(
+                    "Rarity not found",
+                    ErrorTypes.VALIDATION,
+                    `Rarity **${rarityName}** does not exist.`
+                );
+            }
+
+            // Remove the rarity
+            await client.db.delete(rarityKey);
+
+            // Remove from rarities list
+            const raritiesList = await client.db.get(raritiesListKey, []);
+            const updatedList = raritiesList.filter(r => r.toLowerCase() !== rarityName.toLowerCase());
+            await client.db.set(raritiesListKey, updatedList);
+
+            logger.info(`[CARDS] Rarity removed: ${rarityName}`, { guildId, rarityName });
+            return true;
+        } catch (error) {
+            if (error instanceof TitanBotError) throw error;
+            throw createError(
+                "Failed to remove rarity",
+                ErrorTypes.DATABASE,
+                "An error occurred while removing the rarity.",
+                { guildId, rarityName, error: error.message }
+            );
+        }
+    }
+
+    /**
      * Add card to pack
      */
     static async addCardToPack(client, guildId, packName, cardName, rarity, value) {
