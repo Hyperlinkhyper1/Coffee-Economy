@@ -14,14 +14,21 @@ const TEXT_COLORS = [
 
 const CARDS_PER_PAGE = 10;
 
-async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilter = 'Common') { // Default to 'Common'
-    const allPacks = await CardService.getPacks(client, guildId);
+async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilter = 'Common', packNameFilter = null) { // Added packNameFilter
     let allCards = [];
 
-    for (const packName of allPacks) {
-        const pack = await CardService.getPack(client, guildId, packName);
+    if (packNameFilter) {
+        const pack = await CardService.getPack(client, guildId, packNameFilter);
         if (pack && pack.cards) {
-            allCards = allCards.concat(pack.cards);
+            allCards = pack.cards;
+        }
+    } else {
+        const allPacks = await CardService.getPacks(client, guildId);
+        for (const packName of allPacks) {
+            const pack = await CardService.getPack(client, guildId, packName);
+            if (pack && pack.cards) {
+                allCards = allCards.concat(pack.cards);
+            }
         }
     }
 
@@ -48,7 +55,7 @@ async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilte
     const embed = createEmbed({ // Corrected call: pass an object
         title: '💳 Card Index',
         color: embedColor, // Pass color as a property of the object
-        description: `Displaying cards (Rarity: ${rarityFilter === 'all' ? 'All' : rarityFilter})`,
+        description: `Displaying cards (Rarity: ${rarityFilter === 'all' ? 'All' : rarityFilter}${packNameFilter ? ` from pack: ${packNameFilter}` : ''})`,
         footer: { text: `Page ${currentPage + 1} of ${totalPages || 1}` }
     });
 
@@ -80,15 +87,16 @@ async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilte
         .setPlaceholder('Filter by rarity...')
         .addOptions(rarityOptions.slice(0, 25)); // Discord API limit of 25 options
 
+    // Pass packNameFilter in customId for persistence
     const buttons = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(`cardindex_prev_${currentPage}_${rarityFilter}`)
+                .setCustomId(`cardindex_prev_${currentPage}_${rarityFilter}_${packNameFilter || 'none'}`)
                 .setLabel('Previous')
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(currentPage === 0),
             new ButtonBuilder()
-                .setCustomId(`cardindex_next_${currentPage}_${rarityFilter}`)
+                .setCustomId(`cardindex_next_${currentPage}_${rarityFilter}_${packNameFilter || 'none'}`)
                 .setLabel('Next')
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(currentPage >= totalPages - 1 || totalPages === 0)
@@ -192,6 +200,12 @@ export default {
             subcommand
                 .setName('cardindex')
                 .setDescription('View all available cards')
+                .addStringOption(option =>
+                    option.setName('packname')
+                        .setDescription('Filter cards by a specific pack')
+                        .setRequired(false)
+                        .setAutocomplete(true)
+                )
         )
         .addSubcommand(subcommand =>
             subcommand
@@ -240,7 +254,7 @@ export default {
         try {
             if (focusedOption.name === 'packname') {
                 let packs = [];
-                if (subcommand === 'shopaddpack' || subcommand === 'addtopack' || subcommand === 'createpack') {
+                if (['shopaddpack', 'addtopack', 'createpack', 'cardindex'].includes(subcommand)) { // Added 'cardindex'
                     // For adding/creating, suggest all existing packs
                     packs = await CardService.getPacks(interaction.client, guildId);
                 } else if (subcommand === 'shopremovepack') {
@@ -501,7 +515,7 @@ export default {
                 `Successfully removed card pack **${packName}** from the shop.`
             );
 
-            return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+            return await InteractionHelper.safeEditEditReply(interaction, { embeds: [embed] });
         }
 
         if (subcommand === 'shoprestock') {
@@ -531,7 +545,9 @@ export default {
             const deferred = await InteractionHelper.safeDefer(interaction);
             if (!deferred) return;
 
-            const { embeds, components } = await getCardIndexEmbedAndComponents(client, guildId, 0);
+            const packNameFilter = interaction.options.getString('packname'); // Get the packname option
+
+            const { embeds, components } = await getCardIndexEmbedAndComponents(client, guildId, 0, 'all', packNameFilter); // Pass 'all' for rarity and the packNameFilter
             const reply = await InteractionHelper.safeEditReply(interaction, { embeds, components, fetchReply: true });
 
             // Create a collector to listen for button and select menu interactions
@@ -543,12 +559,14 @@ export default {
             collector.on('collect', async i => {
                 await i.deferUpdate();
                 let currentPage = 0;
-                let rarityFilter = 'Common'; // Default to 'Common' on interaction
+                let rarityFilter = 'all'; // Default to 'all' on interaction
+                let currentPackNameFilter = packNameFilter; // Persist the packNameFilter
 
                 if (i.customId.startsWith('cardindex_prev_') || i.customId.startsWith('cardindex_next_')) {
                     const parts = i.customId.split('_');
                     currentPage = parseInt(parts[2]);
                     rarityFilter = parts[3];
+                    currentPackNameFilter = parts[4] === 'none' ? null : parts[4]; // Retrieve packNameFilter
 
                     if (i.customId.startsWith('cardindex_prev_')) {
                         currentPage--;
@@ -560,7 +578,7 @@ export default {
                     currentPage = 0; // Reset to first page when filter changes
                 }
 
-                const { embeds: newEmbeds, components: newComponents } = await getCardIndexEmbedAndComponents(client, guildId, currentPage, rarityFilter);
+                const { embeds: newEmbeds, components: newComponents } = await getCardIndexEmbedAndComponents(client, guildId, currentPage, rarityFilter, currentPackNameFilter);
                 await i.editReply({ embeds: newEmbeds, components: newComponents });
             });
 
