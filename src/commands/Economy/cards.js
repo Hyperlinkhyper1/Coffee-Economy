@@ -174,11 +174,11 @@ export default {
                         .setAutocomplete(true)
                 )
         )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('cardindex')
-                .setDescription('View all available cards')
-        ),
+        // .addSubcommand(subcommand =>
+        //     subcommand
+        //         .setName('cardindex')
+        //         .setDescription('View all available cards')
+        // ),
 
     async autocomplete(interaction) {
         const focusedOption = interaction.options.getFocused(true);
@@ -373,59 +373,59 @@ export default {
             return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         }
 
-        if (subcommand === 'cardindex') {
-            const deferred = await InteractionHelper.safeDefer(interaction);
-            if (!deferred) return;
+        // if (subcommand === 'cardindex') {
+        //     const deferred = await InteractionHelper.safeDefer(interaction);
+        //     if (!deferred) return;
 
-            const { embeds, components } = await getCardIndexEmbedAndComponents(client, guildId, 0);
-            const reply = await InteractionHelper.safeEditReply(interaction, { embeds, components });
+        //     const { embeds, components } = await getCardIndexEmbedAndComponents(client, guildId, 0);
+        //     const reply = await InteractionHelper.safeEditReply(interaction, { embeds, components });
 
-            // Create a collector to listen for button and select menu interactions
-            const collector = reply.createMessageComponentCollector({
-                filter: i => i.user.id === interaction.user.id && i.customId.startsWith('cardindex_'),
-                time: 300000 // 5 minutes
-            });
+        //     // Create a collector to listen for button and select menu interactions
+        //     const collector = reply.createMessageComponentCollector({
+        //         filter: i => i.user.id === interaction.user.id && i.customId.startsWith('cardindex_'),
+        //         time: 300000 // 5 minutes
+        //     });
 
-            collector.on('collect', async i => {
-                await i.deferUpdate();
-                let currentPage = 0;
-                let rarityFilter = 'all';
+        //     collector.on('collect', async i => {
+        //         await i.deferUpdate();
+        //         let currentPage = 0;
+        //         let rarityFilter = 'all';
 
-                if (i.customId.startsWith('cardindex_prev_') || i.customId.startsWith('cardindex_next_')) {
-                    const parts = i.customId.split('_');
-                    currentPage = parseInt(parts[2]);
-                    rarityFilter = parts[3];
+        //         if (i.customId.startsWith('cardindex_prev_') || i.customId.startsWith('cardindex_next_')) {
+        //             const parts = i.customId.split('_');
+        //             currentPage = parseInt(parts[2]);
+        //             rarityFilter = parts[3];
 
-                    if (i.customId.startsWith('cardindex_prev_')) {
-                        currentPage--;
-                    } else {
-                        currentPage++;
-                    }
-                } else if (i.customId === 'cardindex_rarity_filter') {
-                    rarityFilter = i.values[0];
-                    currentPage = 0; // Reset to first page when filter changes
-                }
+        //             if (i.customId.startsWith('cardindex_prev_')) {
+        //                 currentPage--;
+        //             } else {
+        //                 currentPage++;
+        //             }
+        //         } else if (i.customId === 'cardindex_rarity_filter') {
+        //             rarityFilter = i.values[0];
+        //             currentPage = 0; // Reset to first page when filter changes
+        //         }
 
-                const { embeds: newEmbeds, components: newComponents } = await getCardIndexEmbedAndComponents(client, guildId, currentPage, rarityFilter);
-                await i.editReply({ embeds: newEmbeds, components: newComponents });
-            });
+        //         const { embeds: newEmbeds, components: newComponents } = await getCardIndexEmbedAndComponents(client, guildId, currentPage, rarityFilter);
+        //         await i.editReply({ embeds: newEmbeds, components: newComponents });
+        //     });
 
-            collector.on('end', async () => {
-                // Disable components when collector ends
-                const disabledComponents = components.map(row => {
-                    return new ActionRowBuilder().addComponents(
-                        row.components.map(component => {
-                            if (component.data.type === 2) { // Button
-                                return ButtonBuilder.from(component).setDisabled(true);
-                            } else if (component.data.type === 3) { // SelectMenu
-                                return StringSelectMenuBuilder.from(component).setDisabled(true);
-                            }
-                            return component;
-                        })
-                    );
-                });
-                await InteractionHelper.safeEditReply(interaction, { components: disabledComponents });
-            });
-        }
+        //     collector.on('end', async () => {
+        //         // Disable components when collector ends
+        //         const disabledComponents = components.map(row => {
+        //             return new ActionRowBuilder().addComponents(
+        //                 row.components.map(component => {
+        //                     if (component.data.type === 2) { // Button
+        //                         return ButtonBuilder.from(component).setDisabled(true);
+        //                     } else if (component.data.type === 3) { // SelectMenu
+        //                         return StringSelectMenuBuilder.from(component).setDisabled(true);
+        //                     }
+        //                     return component;
+        //                 })
+        //             );
+        //         });
+        //         await InteractionHelper.safeEditReply(interaction, { components: disabledComponents });
+        //     });
+        // }
     }, { command: 'cards' })
 };
