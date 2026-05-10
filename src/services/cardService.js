@@ -11,7 +11,7 @@ class CardService {
         const packsListKey = `cards:packs:${guildId}`;
 
         try {
-            const existingPack = await client.database.get(packKey);
+            const existingPack = await client.db.get(packKey);
             if (existingPack) {
                 throw createError(
                     "Pack already exists",
@@ -26,13 +26,13 @@ class CardService {
                 cards: []
             };
 
-            await client.database.set(packKey, packData);
+            await client.db.set(packKey, packData);
 
             // Add to packs list
-            const packsList = await client.database.get(packsListKey, []);
+            const packsList = await client.db.get(packsListKey, []);
             if (!packsList.some(p => p.toLowerCase() === packName.toLowerCase())) {
                 packsList.push(packName);
-                await client.database.set(packsListKey, packsList);
+                await client.db.set(packsListKey, packsList);
             }
 
             logger.info(`[CARDS] Pack created: ${packName}`, { guildId, packName });
@@ -56,7 +56,7 @@ class CardService {
         const raritiesListKey = `cards:rarities:${guildId}`;
 
         try {
-            const existingRarity = await client.database.get(rarityKey);
+            const existingRarity = await client.db.get(rarityKey);
             if (existingRarity) {
                 throw createError(
                     "Rarity already exists",
@@ -72,13 +72,13 @@ class CardService {
                 createdAt: Date.now()
             };
 
-            await client.database.set(rarityKey, rarityData);
+            await client.db.set(rarityKey, rarityData);
 
             // Add to rarities list
-            const raritiesList = await client.database.get(raritiesListKey, []);
+            const raritiesList = await client.db.get(raritiesListKey, []);
             if (!raritiesList.some(r => r.toLowerCase() === rarityName.toLowerCase())) {
                 raritiesList.push(rarityName);
-                await client.database.set(raritiesListKey, raritiesList);
+                await client.db.set(raritiesListKey, raritiesList);
             }
 
             logger.info(`[CARDS] Rarity created: ${rarityName}`, { guildId, rarityName, color, chance });
@@ -102,7 +102,7 @@ class CardService {
         const rarityKey = `cards:rarity:${guildId}:${rarity.toLowerCase()}`;
 
         try {
-            const pack = await client.database.get(packKey);
+            const pack = await client.db.get(packKey);
             if (!pack) {
                 throw createError(
                     "Pack not found",
@@ -111,7 +111,7 @@ class CardService {
                 );
             }
 
-            const rarityData = await client.database.get(rarityKey);
+            const rarityData = await client.db.get(rarityKey);
             if (!rarityData) {
                 throw createError(
                     "Rarity not found",
@@ -137,7 +137,7 @@ class CardService {
             };
 
             pack.cards.push(card);
-            await client.database.set(packKey, pack);
+            await client.db.set(packKey, pack);
 
             logger.info(`[CARDS] Card added to pack`, { guildId, packName, cardName, rarity, value });
             return card;
@@ -158,7 +158,7 @@ class CardService {
     static async getPacks(client, guildId) {
         try {
             const packsListKey = `cards:packs:${guildId}`;
-            const packsList = await client.database.get(packsListKey, []);
+            const packsList = await client.db.get(packsListKey, []);
             return packsList;
         } catch (error) {
             logger.warn(`[CARDS] Failed to get packs for guild ${guildId}`, error);
@@ -172,7 +172,7 @@ class CardService {
     static async getRarities(client, guildId) {
         try {
             const raritiesListKey = `cards:rarities:${guildId}`;
-            const raritiesList = await client.database.get(raritiesListKey, []);
+            const raritiesList = await client.db.get(raritiesListKey, []);
             return raritiesList;
         } catch (error) {
             logger.warn(`[CARDS] Failed to get rarities for guild ${guildId}`, error);
@@ -186,7 +186,7 @@ class CardService {
     static async getPack(client, guildId, packName) {
         try {
             const packKey = `cards:pack:${guildId}:${packName.toLowerCase()}`;
-            return await client.database.get(packKey);
+            return await client.db.get(packKey);
         } catch (error) {
             logger.warn(`[CARDS] Failed to get pack ${packName}`, error);
             return null;
@@ -199,7 +199,7 @@ class CardService {
     static async getUserCards(client, guildId, userId) {
         try {
             const inventoryKey = `cards:inventory:${guildId}:${userId}`;
-            return await client.database.get(inventoryKey, {});
+            return await client.db.get(inventoryKey, {});
         } catch (error) {
             logger.warn(`[CARDS] Failed to get user cards for ${userId}`, error);
             return {};
@@ -215,7 +215,7 @@ class CardService {
             const cardKey = `${cardName}:${rarity}`;
             inventory[cardKey] = (inventory[cardKey] || 0) + 1;
             const inventoryKey = `cards:inventory:${guildId}:${userId}`;
-            await client.database.set(inventoryKey, inventory);
+            await client.db.set(inventoryKey, inventory);
             return inventory;
         } catch (error) {
             throw createError(
@@ -275,7 +275,7 @@ class CardService {
                 delete inventory[cardKey];
             }
             const inventoryKey = `cards:inventory:${guildId}:${userId}`;
-            await client.database.set(inventoryKey, inventory);
+            await client.db.set(inventoryKey, inventory);
 
             // Add money to user
             const userData = await getEconomyData(client, guildId, userId);
