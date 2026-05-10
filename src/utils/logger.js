@@ -151,27 +151,17 @@ const logger = createLogger({
   ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new transports.Console({
-    format: combine(
-      colorize(),
-      timestamp({ format: 'HH:mm:ss' }),
-      errors({ stack: true }),
-      logFormat
-    ),
-    level: 'debug', // Explicitly set to debug for development console output
-  }));
-} else {
-  logger.add(new transports.Console({
-    format: combine(
-      colorize(),
-      timestamp({ format: 'HH:mm:ss' }),
-      errors({ stack: true }),
-      logFormat
-    ),
-    level: resolvedLogLevel,
-  }));
-}
+// Force console output to debug level for troubleshooting
+logger.add(new transports.Console({
+  format: combine(
+    colorize(),
+    timestamp({ format: 'HH:mm:ss' }),
+    errors({ stack: true }),
+    logFormat
+  ),
+  level: 'debug', // TEMPORARY: Force debug level for console output
+}));
+
 
 logger.stream = {
   write: (message) => {
