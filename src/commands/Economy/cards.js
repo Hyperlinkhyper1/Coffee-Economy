@@ -248,7 +248,7 @@ export default {
         }
     },
 
-    async execute(interaction, config, client) {
+    execute: withErrorHandling(async (interaction, config, client) => {
         const subcommand = interaction.options.getSubcommand();
         const guildId = interaction.guildId;
 
