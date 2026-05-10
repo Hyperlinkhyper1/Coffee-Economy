@@ -14,14 +14,13 @@ export default {
             const shopPackNames = await CardService.getShopPacks(client, interaction.guildId);
             const dynamicCardPacks = [];
 
+            const now = Date.now();
+            const restockIntervalMs = 15 * 60 * 1000; // 15 minutes in milliseconds
+            const nextGlobalRestockTimestamp = Math.ceil(now / restockIntervalMs) * restockIntervalMs;
+
             for (const packName of shopPackNames) {
                 const packDetails = await CardService.getShopPackDetails(client, interaction.guildId, packName);
                 if (packDetails) {
-                    // Calculate next restock time
-                    const restockIntervalMs = 15 * 60 * 1000; // 15 minutes in milliseconds
-                    const nextRestockTimestamp = packDetails.lastStockUpdate + restockIntervalMs;
-                    const discordRelativeTimestamp = `<t:${Math.floor(nextRestockTimestamp / 1000)}:R>`;
-
                     dynamicCardPacks.push({
                         id: `pack_${packDetails.packName.toLowerCase().replace(/\s/g, '_')}`, // Unique ID for card packs
                         name: `${packDetails.packName} Card Pack`,
@@ -33,7 +32,7 @@ export default {
                         currentStock: packDetails.currentStock,
                         maxStock: packDetails.maxStock,
                         originalPackName: packDetails.packName, // Store original name for potential future use
-                        nextRestock: discordRelativeTimestamp // Add next restock time
+                        nextRestock: `<t:${Math.floor(nextGlobalRestockTimestamp / 1000)}:R>` // Use the calculated next global restock
                     });
                 }
             }
