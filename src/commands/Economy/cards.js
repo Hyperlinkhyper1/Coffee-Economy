@@ -378,7 +378,7 @@ export default {
             if (!deferred) return;
 
             const { embeds, components } = await getCardIndexEmbedAndComponents(client, guildId, 0);
-            const reply = await InteractionHelper.safeEditReply(interaction, { embeds, components });
+            const reply = await InteractionHelper.safeEditReply(interaction, { embeds, components, fetchReply: true });
 
             // Create a collector to listen for button and select menu interactions
             const collector = reply.createMessageComponentCollector({
