@@ -32,9 +32,11 @@ async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilte
         filteredCards = allCards.filter(card => card.rarity.toLowerCase() === rarityFilter.toLowerCase());
         const rarityDetails = await CardService.getRarityDetails(client, guildId, rarityFilter);
         if (rarityDetails) {
-            embedColor = rarityDetails.color;
+            embedColor = rarityDetails.color; // This will be a string like 'Dark Blue'
         }
     }
+
+    logger.debug(`[CARDS] getCardIndexEmbedAndComponents - embedColor before createEmbed: ${embedColor}`);
 
     const totalPages = Math.ceil(filteredCards.length / CARDS_PER_PAGE);
     const currentPage = Math.max(0, Math.min(page, totalPages - 1)); // Ensure page is within bounds
@@ -43,9 +45,12 @@ async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilte
     const end = start + CARDS_PER_PAGE;
     const cardsToDisplay = filteredCards.slice(start, end);
 
-    const embed = createEmbed('💳 Card Index', embedColor) // Pass color to createEmbed
-        .setDescription(`Displaying cards (Rarity: ${rarityFilter === 'all' ? 'All' : rarityFilter})`)
-        .setFooter({ text: `Page ${currentPage + 1} of ${totalPages || 1}` });
+    const embed = createEmbed({ // Corrected call: pass an object
+        title: '💳 Card Index',
+        color: embedColor, // Pass color as a property of the object
+        description: `Displaying cards (Rarity: ${rarityFilter === 'all' ? 'All' : rarityFilter})`,
+        footer: { text: `Page ${currentPage + 1} of ${totalPages || 1}` }
+    });
 
     if (cardsToDisplay.length === 0) {
         embed.addFields({ name: 'No Cards Found', value: 'There are no cards to display for this filter.' });
