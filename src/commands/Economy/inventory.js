@@ -88,9 +88,13 @@ export default {
                 for (const [cardKey, quantity] of Object.entries(userCards)) {
                     if (quantity > 0) {
                         const [cardName, rarityName] = cardKey.split(':');
+                        logger.debug(`[INVENTORY] Processing card: ${cardName}, RarityName from key: ${rarityName}`);
                         const rarityDetails = await CardService.getRarityDetails(client, guildId, rarityName);
+                        logger.debug(`[INVENTORY] RarityDetails for ${rarityName}: ${JSON.stringify(rarityDetails)}`);
+
                         // Get ANSI code from map, default to Light Gray if not found
                         const colorCode = rarityDetails && ANSI_COLOR_MAP[rarityDetails.color] ? ANSI_COLOR_MAP[rarityDetails.color] : ANSI_COLOR_MAP['Light Gray'];
+                        logger.debug(`[INVENTORY] ColorCode for ${rarityName} (color: ${rarityDetails?.color}): ${colorCode}`);
                         cardLines.push(`[${colorCode}m${cardName}: ${quantity}x [${rarityName}][0m`);
                     }
                 }
