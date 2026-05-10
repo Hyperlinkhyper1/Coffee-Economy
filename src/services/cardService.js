@@ -509,6 +509,7 @@ class CardService {
             for (let i = 0; i < quantity; i++) {
                 // Logic to draw a card from the pack based on rarity chances
                 const drawnCard = this.drawCardFromPack(actualPack.cards, validRarityDetails);
+                logger.debug(`[CARDS] Drawn card in buyPack (iteration ${i + 1}): ${JSON.stringify(drawnCard)}`); // Added debug log
                 if (drawnCard) {
                     await this.addCardToInventory(client, guildId, userId, drawnCard.name, drawnCard.rarity);
                     purchasedCards.push(drawnCard);
@@ -542,13 +543,18 @@ class CardService {
     /**
      * Helper function to draw a random card from a pack based on rarity chances.
      */
-    static async drawCardFromPack(packCards, rarityDetails) {
-        if (!packCards || packCards.length === 0) return null;
+    static drawCardFromPack(packCards, rarityDetails) {
+        if (!packCards || packCards.length === 0) {
+            logger.debug(`[CARDS] drawCardFromPack: No cards in pack or packCards is null/empty.`);
+            return null;
+        }
 
         const totalChance = rarityDetails.reduce((sum, r) => sum + r.chance, 0);
         if (totalChance === 0) {
             // If no rarity chances are defined, pick a random card directly
-            return packCards[Math.floor(Math.random() * packCards.length)];
+            const drawn = packCards[Math.floor(Math.random() * packCards.length)];
+            logger.debug(`[CARDS] drawCardFromPack (no rarity chances, random pick): ${JSON.stringify(drawn)}`);
+            return drawn;
         }
 
         let random = Math.random() * totalChance;
@@ -565,12 +571,16 @@ class CardService {
         if (selectedRarity) {
             const cardsOfSelectedRarity = packCards.filter(card => card.rarity.toLowerCase() === selectedRarity.toLowerCase());
             if (cardsOfSelectedRarity.length > 0) {
-                return cardsOfSelectedRarity[Math.floor(Math.random() * cardsOfSelectedRarity.length)];
+                const drawn = cardsOfSelectedRarity[Math.floor(Math.random() * cardsOfSelectedRarity.length)];
+                logger.debug(`[CARDS] drawCardFromPack (selected rarity ${selectedRarity}): ${JSON.stringify(drawn)}`);
+                return drawn;
             }
         }
 
         // Fallback: if no card found for selected rarity or no rarity selected, pick any random card
-        return packCards[Math.floor(Math.random() * packCards.length)];
+        const drawn = packCards[Math.floor(Math.random() * packCards.length)];
+        logger.debug(`[CARDS] drawCardFromPack (fallback random pick): ${JSON.stringify(drawn)}`);
+        return drawn;
     }
 
     /**
