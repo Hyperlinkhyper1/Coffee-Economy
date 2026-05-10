@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed } from '../../utils/embeds.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
@@ -11,6 +11,81 @@ const TEXT_COLORS = [
     'Dark Red', 'Dark Magenta', 'Dark Yellow', 'Light Gray',
     'Dark Gray', 'Blue', 'Green', 'Cyan', 'Red', 'Magenta', 'Yellow', 'White'
 ];
+
+const CARDS_PER_PAGE = 10;
+
+async function getCardIndexEmbedAndComponents(client, guildId, page, rarityFilter = 'all') {
+    const allPacks = await CardService.getPacks(client, guildId);
+    let allCards = [];
+
+    for (const packName of allPacks) {
+        const pack = await CardService.getPack(client, guildId, packName);
+        if (pack && pack.cards) {
+            allCards = allCards.concat(pack.cards);
+        }
+    }
+
+    let filteredCards = allCards;
+    if (rarityFilter !== 'all') {
+        filteredCards = allCards.filter(card => card.rarity.toLowerCase() === rarityFilter.toLowerCase());
+    }
+
+    const totalPages = Math.ceil(filteredCards.length / CARDS_PER_PAGE);
+    const currentPage = Math.max(0, Math.min(page, totalPages - 1)); // Ensure page is within bounds
+
+    const start = currentPage * CARDS_PER_PAGE;
+    const end = start + CARDS_PER_PAGE;
+    const cardsToDisplay = filteredCards.slice(start, end);
+
+    const embed = createEmbed('💳 Card Index')
+        .setDescription(`Displaying cards (Rarity: ${rarityFilter === 'all' ? 'All' : rarityFilter})`)
+        .setFooter({ text: `Page ${currentPage + 1} of ${totalPages || 1}` });
+
+    if (cardsToDisplay.length === 0) {
+        embed.addFields({ name: 'No Cards Found', value: 'There are no cards to display for this filter.' });
+    } else {
+        cardsToDisplay.forEach(card => {
+            embed.addFields({
+                name: card.name,
+                value: `Rarity: ${card.rarity} | Value: $${card.value.toLocaleString()}`,
+                inline: false
+            });
+        });
+    }
+
+    const rarities = await CardService.getRarities(client, guildId);
+    const rarityOptions = [{ label: 'All Rarities', value: 'all', default: rarityFilter === 'all' }];
+    rarityOptions.push(...rarities.map(r => ({
+        label: r,
+        value: r,
+        default: rarityFilter.toLowerCase() === r.toLowerCase()
+    })));
+
+    const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId('cardindex_rarity_filter')
+        .setPlaceholder('Filter by rarity...')
+        .addOptions(rarityOptions.slice(0, 25)); // Discord API limit of 25 options
+
+    const buttons = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(`cardindex_prev_${currentPage}_${rarityFilter}`)
+                .setLabel('Previous')
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(currentPage === 0),
+            new ButtonBuilder()
+                .setCustomId(`cardindex_next_${currentPage}_${rarityFilter}`)
+                .setLabel('Next')
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(currentPage >= totalPages - 1 || totalPages === 0)
+        );
+
+    const selectMenuRow = new ActionRowBuilder()
+        .addComponents(selectMenu);
+
+    return { embeds: [embed], components: [buttons, selectMenuRow] };
+}
+
 
 export default {
     data: new SlashCommandBuilder()
@@ -98,6 +173,11 @@ export default {
                         .setRequired(true)
                         .setAutocomplete(true)
                 )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('cardindex')
+                .setDescription('View all available cards')
         ),
 
     async autocomplete(interaction) {
@@ -168,12 +248,12 @@ export default {
         }
     },
 
-    execute: withErrorHandling(async (interaction, config, client) => {
+    async execute(interaction, config, client) {
         const subcommand = interaction.options.getSubcommand();
         const guildId = interaction.guildId;
 
         // Check admin permissions for admin commands
-        if (['createpack', 'addtopack', 'addrarity'].includes(subcommand)) {
+        if (['createpack', 'addtopack', 'addrarity', 'removerarity'].includes(subcommand)) {
             if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
                 throw createError(
                     "Insufficient permissions",
@@ -291,6 +371,61 @@ export default {
             });
 
             return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        }
+
+        if (subcommand === 'cardindex') {
+            const deferred = await InteractionHelper.safeDefer(interaction);
+            if (!deferred) return;
+
+            const { embeds, components } = await getCardIndexEmbedAndComponents(client, guildId, 0);
+            const reply = await InteractionHelper.safeEditReply(interaction, { embeds, components });
+
+            // Create a collector to listen for button and select menu interactions
+            const collector = reply.createMessageComponentCollector({
+                filter: i => i.user.id === interaction.user.id && i.customId.startsWith('cardindex_'),
+                time: 300000 // 5 minutes
+            });
+
+            collector.on('collect', async i => {
+                await i.deferUpdate();
+                let currentPage = 0;
+                let rarityFilter = 'all';
+
+                if (i.customId.startsWith('cardindex_prev_') || i.customId.startsWith('cardindex_next_')) {
+                    const parts = i.customId.split('_');
+                    currentPage = parseInt(parts[2]);
+                    rarityFilter = parts[3];
+
+                    if (i.customId.startsWith('cardindex_prev_')) {
+                        currentPage--;
+                    } else {
+                        currentPage++;
+                    }
+                } else if (i.customId === 'cardindex_rarity_filter') {
+                    rarityFilter = i.values[0];
+                    currentPage = 0; // Reset to first page when filter changes
+                }
+
+                const { embeds: newEmbeds, components: newComponents } = await getCardIndexEmbedAndComponents(client, guildId, currentPage, rarityFilter);
+                await i.editReply({ embeds: newEmbeds, components: newComponents });
+            });
+
+            collector.on('end', async () => {
+                // Disable components when collector ends
+                const disabledComponents = components.map(row => {
+                    return new ActionRowBuilder().addComponents(
+                        row.components.map(component => {
+                            if (component.data.type === 2) { // Button
+                                return ButtonBuilder.from(component).setDisabled(true);
+                            } else if (component.data.type === 3) { // SelectMenu
+                                return StringSelectMenuBuilder.from(component).setDisabled(true);
+                            }
+                            return component;
+                        })
+                    );
+                });
+                await InteractionHelper.safeEditReply(interaction, { components: disabledComponents });
+            });
         }
     }, { command: 'cards' })
 };
