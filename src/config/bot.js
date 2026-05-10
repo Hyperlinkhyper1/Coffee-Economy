@@ -110,6 +110,24 @@ export const botConfig = {
       red: "#ED4245",
       black: "#000000",
 
+      // Mapped TEXT_COLORS for card rarities
+      'Black': '#000000',
+      'Dark Blue': '#00008B',
+      'Dark Green': '#006400',
+      'Dark Cyan': '#008B8B',
+      'Dark Red': '#8B0000',
+      'Dark Magenta': '#8B008B',
+      'Dark Yellow': '#8B8B00',
+      'Light Gray': '#D3D3D3',
+      'Dark Gray': '#A9A9A9',
+      'Blue': '#0000FF',
+      'Green': '#00FF00',
+      'Cyan': '#00FFFF',
+      'Red': '#FF0000',
+      'Magenta': '#FF00FF',
+      'Yellow': '#FFFF00',
+      'White': '#FFFFFF',
+
       // Feature-specific colors.
       giveaway: {
         active: "#57F287",
@@ -191,7 +209,6 @@ export const botConfig = {
   // =========================
   // SHOP SETTINGS
   // =========================
-  // Add shop defaults here when needed.
   shop: {
     
   },
@@ -543,7 +560,3 @@ export function getRandomColor() {
 }
 
 export default botConfig;
-
-
-
-
