@@ -17,16 +17,14 @@ const ANSI_COLOR_MAP = {
     'Dark Cyan': '1;36',
     'Dark Red': '1;31',
     'Dark Magenta': '1;35',
-    // Changed 'Magenta' to use '1;35' (Dark Magenta) for testing Discord ANSI rendering
-    'Magenta': '1;35',
     'Dark Yellow': '1;33',
     'Light Gray': '1;37', // Standard white/light gray
     'Dark Gray': '1;90', // Bright black/dark gray
     'Blue': '1;94',      // Bright blue
-    // Changed 'Green' to use '1;32' (Dark Green) for testing Discord ANSI rendering
-    'Green': '1;32',
+    'Green': '1;92',     // Bright green
     'Cyan': '1;96',      // Bright cyan
     'Red': '1;91',       // Bright red
+    'Magenta': '1;95',   // Original Magenta (1;95)
     'Yellow': '1;93',    // Bright yellow
     'White': '1;97'      // Bright white
 };
