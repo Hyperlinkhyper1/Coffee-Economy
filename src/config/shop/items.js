@@ -5,7 +5,8 @@ export const shopItems = [
         emoji: '🎣',
         price: 500,
         description: 'Catch fish to sell for profit!',
-        type: 'tool'
+        type: 'tool',
+        purchasable: false
     },
     {
         id: 'hunting_rifle',
@@ -13,7 +14,8 @@ export const shopItems = [
         emoji: '🔫',
         price: 1000,
         description: 'Hunt animals for meat and fur!',
-        type: 'tool'
+        type: 'tool',
+        purchasable: false
     },
     {
         id: 'laptop',
@@ -22,7 +24,8 @@ export const shopItems = [
         price: 2000,
         description: 'Work as a programmer for higher pay!',
         type: 'tool',
-        workMultiplier: 1.5
+        workMultiplier: 1.5,
+        purchasable: false
     },
     {
         id: 'bank_loan',
@@ -32,7 +35,8 @@ export const shopItems = [
         description: 'Increases your bank capacity by 50,000!',
         type: 'upgrade',
         effect: 'bank_capacity',
-        value: 50000
+        value: 50000,
+        purchasable: false
     },
     {
         id: 'lottery_ticket',
@@ -41,7 +45,8 @@ export const shopItems = [
         price: 100,
         description: 'A chance to win big!',
         type: 'consumable',
-        use: 'gamble'
+        use: 'gamble',
+        purchasable: false
     },
     {
         id: 'before_20k_card',
