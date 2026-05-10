@@ -159,7 +159,7 @@ if (process.env.NODE_ENV !== 'production') {
       errors({ stack: true }),
       logFormat
     ),
-    level: resolvedLogLevel,
+    level: 'debug', // Explicitly set to debug for development console output
   }));
 } else {
   logger.add(new transports.Console({
@@ -220,5 +220,3 @@ function shutdownLog(message) {
 export { logger, startupLog, shutdownLog };
 
 export default logger;
-
-
