@@ -235,18 +235,18 @@ class TitanBot extends Client {
     cron.schedule('*/15 * * * *', () => this.updateAllCounters());
     cron.schedule('* * * * *', () => ForumAlertService.processAlerts(this));
 
-    // New cron job for card pack shop restock every 15 minutes
-    cron.schedule('*/15 * * * *', async () => {
-      logger.info('[CRON] Running scheduled card pack shop restock...');
-      for (const [guildId] of this.guilds.cache) {
-        try {
-          await CardService.restockShop(this, guildId);
-          logger.debug(`[CRON] Restocked card shop for guild ${guildId}`);
-        } catch (error) {
-          logger.error(`[CRON] Error restocking card shop for guild ${guildId}:`, error);
-        }
-      }
-    });
+    // // New cron job for card pack shop restock every 15 minutes
+    // cron.schedule('*/15 * * * *', async () => {
+    //   logger.info('[CRON] Running scheduled card pack shop restock...');
+    //   for (const [guildId] of this.guilds.cache) {
+    //     try {
+    //       await CardService.restockShop(this, guildId);
+    //       logger.debug(`[CRON] Restocked card shop for guild ${guildId}`);
+    //     } catch (error) {
+    //       logger.error(`[CRON] Error restocking card shop for guild ${guildId}:`, error);
+    //     }
+    //   }
+    // });
   }
 
   async updateAllCounters() {
