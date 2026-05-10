@@ -515,7 +515,7 @@ export default {
                 `Successfully removed card pack **${packName}** from the shop.`
             );
 
-            return await InteractionHelper.safeEditEditReply(interaction, { embeds: [embed] });
+            return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         }
 
         if (subcommand === 'shoprestock') {
@@ -547,7 +547,7 @@ export default {
 
             const packNameFilter = interaction.options.getString('packname'); // Get the packname option
 
-            const { embeds, components } = await getCardIndexEmbedAndComponents(client, guildId, 0, 'all', packNameFilter); // Pass 'all' for rarity and the packNameFilter
+            const { embeds, components } = await getCardIndexEmbedAndComponents(client, guildId, 0, 'Common', packNameFilter); // Changed 'all' to 'Common'
             const reply = await InteractionHelper.safeEditReply(interaction, { embeds, components, fetchReply: true });
 
             // Create a collector to listen for button and select menu interactions
@@ -559,7 +559,7 @@ export default {
             collector.on('collect', async i => {
                 await i.deferUpdate();
                 let currentPage = 0;
-                let rarityFilter = 'all'; // Default to 'all' on interaction
+                let rarityFilter = 'Common'; // Changed 'all' to 'Common'
                 let currentPackNameFilter = packNameFilter; // Persist the packNameFilter
 
                 if (i.customId.startsWith('cardindex_prev_') || i.customId.startsWith('cardindex_next_')) {
