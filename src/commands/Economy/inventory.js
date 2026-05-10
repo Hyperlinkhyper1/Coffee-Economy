@@ -35,7 +35,7 @@ export default {
 
             logger.debug(`[ECONOMY] Inventory requested for ${userId}`, { userId, guildId });
 
-            const userData = await getEconomyData(client, guildId, userId);
+        const userData = await getEconomyData(client, guildId, userId);
 
             if (!userData) {
                 throw createError(
@@ -108,16 +108,16 @@ export default {
                 inventoryDescription = descriptionParts.join("\n\n");
             }
 
-            logger.info(`[ECONOMY] Inventory retrieved`, { 
-                userId, 
+            logger.info(`[ECONOMY] Inventory retrieved`, {
+                userId,
                 guildId,
                 itemCount: Object.keys(inventory).length,
                 cardCount: Object.keys(userCards).length
             });
 
-            const embed = createEmbed({ 
-                title: `📦 ${interaction.user.username}'s Inventory`, 
-                description: inventoryDescription, 
+            const embed = createEmbed({
+                title: `📦 ${interaction.user.username}'s Inventory`,
+                description: inventoryDescription,
             }).setThumbnail(interaction.user.displayAvatarURL());
 
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
