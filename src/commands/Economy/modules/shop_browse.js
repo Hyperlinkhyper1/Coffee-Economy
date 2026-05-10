@@ -17,6 +17,11 @@ export default {
             for (const packName of shopPackNames) {
                 const packDetails = await CardService.getShopPackDetails(client, interaction.guildId, packName);
                 if (packDetails) {
+                    // Calculate next restock time
+                    const restockIntervalMs = 15 * 60 * 1000; // 15 minutes in milliseconds
+                    const nextRestockTimestamp = packDetails.lastStockUpdate + restockIntervalMs;
+                    const discordRelativeTimestamp = `<t:${Math.floor(nextRestockTimestamp / 1000)}:R>`;
+
                     dynamicCardPacks.push({
                         id: `pack_${packDetails.packName.toLowerCase().replace(/\s/g, '_')}`, // Unique ID for card packs
                         name: `${packDetails.packName} Card Pack`,
@@ -27,7 +32,8 @@ export default {
                         purchasable: packDetails.currentStock > 0,
                         currentStock: packDetails.currentStock,
                         maxStock: packDetails.maxStock,
-                        originalPackName: packDetails.packName // Store original name for potential future use
+                        originalPackName: packDetails.packName, // Store original name for potential future use
+                        nextRestock: discordRelativeTimestamp // Add next restock time
                     });
                 }
             }
@@ -65,10 +71,11 @@ export default {
                     }
 
                     if (item.type === 'card_pack') {
-                        valueDescription += `📦 **Stock:** ${item.currentStock}\n`; // Changed this line
+                        valueDescription += `📦 **Stock:** ${item.currentStock}\n`;
                         if (item.currentStock === 0) {
                             valueDescription += `*Currently out of stock.*\n`;
                         }
+                        valueDescription += `🔄 **Restocks:** ${item.nextRestock}\n`; // Display next restock time
                     }
                     valueDescription += item.description;
 
