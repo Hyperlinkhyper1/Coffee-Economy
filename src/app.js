@@ -235,18 +235,37 @@ class TitanBot extends Client {
     cron.schedule('*/15 * * * *', () => this.updateAllCounters());
     cron.schedule('* * * * *', () => ForumAlertService.processAlerts(this));
 
-    // // New cron job for card pack shop restock every 15 minutes
-    // cron.schedule('*/15 * * * *', async () => {
-    //   logger.info('[CRON] Running scheduled card pack shop restock...');
-    //   for (const [guildId] of this.guilds.cache) {
-    //     try {
-    //       await CardService.restockShop(this, guildId);
-    //       logger.debug(`[CRON] Restocked card shop for guild ${guildId}`);
-    //     } catch (error) {
-    //       logger.error(`[CRON] Error restocking card shop for guild ${guildId}:`, error);
-    //     }
-    //   }
-    // });
+    // Re-enabled and enhanced cron job for card pack shop restock every 15 minutes
+    cron.schedule('*/15 * * * *', async () => {
+      logger.info('[CRON] Running scheduled card pack shop restock...');
+      // Ensure client is ready and database is available
+      if (!this.isReady() || !this.db || this.db.getStatus().isDegraded) {
+        logger.warn('[CRON] Skipping scheduled card pack restock: Client not ready or database degraded.');
+        return;
+      }
+
+      const guildsToRestock = this.guilds.cache;
+      if (guildsToRestock.size === 0) {
+        logger.info('[CRON] No guilds in cache to restock card packs for.');
+        return;
+      }
+
+      for (const [guildId, guild] of guildsToRestock) {
+        try {
+          logger.debug(`[CRON] Attempting to restock card shop for guild ${guild.name} (${guildId})...`);
+          const restockedPacks = await CardService.restockShop(this, guildId);
+          if (restockedPacks && restockedPacks.length > 0) {
+            logger.info(`[CRON] Successfully restocked ${restockedPacks.length} card pack(s) for guild ${guild.name} (${guildId}).`);
+            restockedPacks.forEach(pack => logger.debug(`[CRON]   - ${pack.name}: New Stock ${pack.newStock}`));
+          } else {
+            logger.debug(`[CRON] No card packs found or restocked for guild ${guild.name} (${guildId}).`);
+          }
+        } catch (error) {
+          logger.error(`[CRON] Error restocking card shop for guild ${guild.name} (${guildId}):`, error);
+        }
+      }
+      logger.info('[CRON] Scheduled card pack shop restock complete.');
+    });
   }
 
   async updateAllCounters() {
