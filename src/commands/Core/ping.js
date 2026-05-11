@@ -23,27 +23,45 @@ function getSystemResources() {
     const total = totalTick / cpus.length;
     const cpuUsage = 100 - ~~(100 * idle / total);
 
-    // RAM Usage
+    // RAM Usage (Note: May show host server totals in shared environments)
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const usedMem = totalMem - freeMem;
     const ramUsage = Math.round((usedMem / totalMem) * 100);
 
-    // Disk Space (Windows - using system drive)
+    // Disk Space - Try to get project directory size as approximation
     let diskInfo = { used: 'N/A', available: 'N/A' };
     try {
-        // Get the system drive (usually C:)
-        const systemDrive = process.env.SystemDrive || 'C:';
-        const drivePath = systemDrive + '\\';
+        // Calculate approximate project size
+        function getDirectorySize(dirPath) {
+            let totalSize = 0;
+            const items = fs.readdirSync(dirPath);
 
-        // Use fs.statSync to get basic info, but for Windows disk space
-        // we'll provide a note that it's not easily accessible via Node.js
+            for (const item of items) {
+                const itemPath = path.join(dirPath, item);
+                const stats = fs.statSync(itemPath);
+
+                if (stats.isDirectory()) {
+                    // Skip node_modules and other large directories
+                    if (item !== 'node_modules' && item !== '.git' && item !== 'assets') {
+                        totalSize += getDirectorySize(itemPath);
+                    }
+                } else {
+                    totalSize += stats.size;
+                }
+            }
+            return totalSize;
+        }
+
+        const projectSize = getDirectorySize(process.cwd());
+        const projectSizeMB = Math.round(projectSize / 1024 / 1024 * 100) / 100;
+
         diskInfo = {
-            used: 'Use Task Manager',
-            available: 'Use File Explorer'
+            used: `~${projectSizeMB}MB (project)`,
+            available: 'Check host panel'
         };
     } catch (error) {
-        diskInfo = { used: 'N/A', available: 'N/A' };
+        diskInfo = { used: 'Check host panel', available: 'Check host panel' };
     }
 
     return {
@@ -51,7 +69,8 @@ function getSystemResources() {
         ram: {
             used: Math.round(usedMem / 1024 / 1024 / 1024 * 100) / 100, // GB
             total: Math.round(totalMem / 1024 / 1024 / 1024 * 100) / 100, // GB
-            percentage: ramUsage
+            percentage: ramUsage,
+            note: '*May show host server totals'
         },
         disk: diskInfo
     };
@@ -87,8 +106,8 @@ export default {
                 { name: "Bot Latency", value: `${latency}ms`, inline: true },
                 { name: "API Latency", value: `${apiLatency}ms`, inline: true },
                 { name: "CPU Usage", value: `${cpu}%`, inline: true },
-                { name: "RAM Usage", value: `${ram.used}GB / ${ram.total}GB (${ram.percentage}%)`, inline: true },
-                { name: "Disk Usage", value: `Used: ${disk.used}, Available: ${disk.available}`, inline: true },
+                { name: "RAM Usage", value: `${ram.used}GB / ${ram.total}GB (${ram.percentage}%)\n${ram.note}`, inline: true },
+                { name: "Disk Usage", value: `Used: ${disk.used}\nAvailable: ${disk.available}`, inline: true },
             );
 
             await InteractionHelper.safeEditReply(interaction, {
