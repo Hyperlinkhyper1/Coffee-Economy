@@ -48,7 +48,12 @@ async function getDatabaseSize() {
     try {
         if (pgDb && pgDb.isAvailable()) {
             const dbSize = await pgDb.getDatabaseSize();
-            return dbSize ? dbSize.formatted : 'N/A';
+            if (dbSize) {
+                // Convert bytes to MB
+                const sizeInMB = Math.round((dbSize.bytes / 1024 / 1024) * 100) / 100;
+                return `${sizeInMB} MB`;
+            }
+            return 'N/A';
         }
         return 'Memory Mode';
     } catch (error) {
