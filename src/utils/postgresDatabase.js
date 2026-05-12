@@ -1263,11 +1263,31 @@ class PostgreSQLDatabase {
             return null;
         }
     }
+
+    async getDatabaseSize() {
+        try {
+            if (!this.isAvailable()) {
+                return null;
+            }
+
+            const result = await this.pool.query(`
+                SELECT
+                    pg_size_pretty(pg_database_size(current_database())) as size,
+                    pg_database_size(current_database()) as size_bytes
+            `);
+
+            return {
+                formatted: result.rows[0].size,
+                bytes: parseInt(result.rows[0].size_bytes)
+            };
+        } catch (error) {
+            logger.error('Error getting database size:', error);
+            return null;
+        }
+    }
 }
 
 const pgDb = new PostgreSQLDatabase();
 
 export { PostgreSQLDatabase, pgDb };
-
-
 
