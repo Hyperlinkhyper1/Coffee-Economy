@@ -11,8 +11,8 @@ class PingService {
      * @param {number} delayMs - Delay in milliseconds.
      * @param {string} text - Message text.
      */
-    static async schedulePing(client, guildId, channelId, roleId, delayMs, text) {
-        const scheduledTime = Date.now() + delayMs;
+    static async schedulePing(client, guildId, channelId, roleId, intervalMs, text) {
+        const scheduledTime = Date.now() + intervalMs;
         const pingId = `ping:${guildId}:${Date.now()}:${Math.floor(Math.random() * 1000)}`;
         
         const pingData = {
@@ -21,6 +21,7 @@ class PingService {
             channelId,
             roleId,
             scheduledTime,
+            intervalMs,
             text,
             createdAt: Date.now()
         };
@@ -85,11 +86,23 @@ class PingService {
         } catch (error) {
             logger.error(`[PING] Failed to send ping message for ${pingData.id}:`, error);
         } finally {
-            // Clean up
-            await client.db.delete(pingData.id);
-            const pendingPings = await client.db.get('pings:pending', []);
-            const updatedPings = pendingPings.filter(id => id !== pingData.id);
-            await client.db.set('pings:pending', updatedPings);
+            if (pingData.intervalMs) {
+                // Recurring ping: update scheduledTime and save back to DB
+                const nextTime = Date.now() + pingData.intervalMs;
+                const updatedPingData = {
+                    ...pingData,
+                    scheduledTime: nextTime
+                };
+                await client.db.set(pingData.id, updatedPingData);
+                this.setPingTimeout(client, updatedPingData);
+                logger.info(`[PING] Rescheduled recurring ping ${pingData.id} for ${new Date(nextTime).toISOString()}`);
+            } else {
+                // One-time ping: clean up
+                await client.db.delete(pingData.id);
+                const pendingPings = await client.db.get('pings:pending', []);
+                const updatedPings = pendingPings.filter(id => id !== pingData.id);
+                await client.db.set('pings:pending', updatedPings);
+            }
         }
     }
 

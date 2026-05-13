@@ -9,7 +9,7 @@ import { logger } from '../../utils/logger.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('pinguser')
-        .setDescription('Schedule a role ping for later.')
+        .setDescription('Schedule a recurring role ping.')
         .setDefaultMemberPermissions(PermissionFlagsBits.MentionEveryone)
         .addRoleOption(option =>
             option.setName('role')
@@ -18,12 +18,12 @@ export default {
         )
         .addStringOption(option =>
             option.setName('time')
-                .setDescription('The delay (e.g., 3m, 2h, 4d).')
+                .setDescription('The interval between pings (e.g., 3m, 2h, 4d).')
                 .setRequired(true)
         )
         .addStringOption(option =>
             option.setName('text')
-                .setDescription('The text to send with the ping.')
+                .setDescription('The text to send with each ping.')
                 .setRequired(true)
         ),
 
@@ -33,21 +33,21 @@ export default {
         const text = interaction.options.getString('text');
 
         try {
-            const delayMs = parseDuration(timeStr);
-            const scheduledTime = Date.now() + delayMs;
+            const intervalMs = parseDuration(timeStr);
+            const nextPingTime = Date.now() + intervalMs;
 
             await PingService.schedulePing(
                 client,
                 interaction.guildId,
                 interaction.channelId,
                 role.id,
-                delayMs,
+                intervalMs,
                 text
             );
 
             const embed = successEmbed(
-                '✅ Ping Scheduled',
-                `I will ping ${role.toString()} in <t:${Math.floor(scheduledTime / 1000)}:R>.\n\n**Text:** ${text}`
+                '✅ Recurring Ping Scheduled',
+                `I will ping ${role.toString()} every **${timeStr}**.\nFirst ping in <t:${Math.floor(nextPingTime / 1000)}:R>.\n\n**Text:** ${text}`
             );
 
             return await InteractionHelper.safeReply(interaction, { embeds: [embed] });
