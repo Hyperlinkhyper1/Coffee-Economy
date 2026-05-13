@@ -1076,32 +1076,7 @@ rank: 0
 
 
 
-export function getApplicationRolesKey(guildId) {
-    return `guild:${guildId}:applications:roles`;
-}
 
-
-
-
-
-
-
-export async function getApplicationRoles(client, guildId) {
-    try {
-        if (!client.db || typeof client.db.get !== "function") {
-            logger.error("Database client is not available for getApplicationRoles.");
-            return [];
-        }
-
-        const key = getApplicationRolesKey(guildId);
-        const roles = await client.db.get(key, []);
-        const unwrappedRoles = unwrapReplitData(roles);
-        return Array.isArray(unwrappedRoles) ? unwrappedRoles : [];
-    } catch (error) {
-        logger.error(`Error getting application roles for guild ${guildId}:`, error);
-        return [];
-    }
-}
 
 
 
