@@ -166,16 +166,6 @@ export default {
                         const latestVersion = latestVersions[0];
                         const embed = ModrinthService.createUpdateEmbed(project.projectName, project.iconUrl, latestVersion);
 
-                        // Add changelog if available
-                        if (latestVersion.body) {
-                            const changelog = latestVersion.body.length > 1024
-                                ? latestVersion.body.substring(0, 1021) + '...'
-                                : latestVersion.body;
-                            embed.addFields(
-                                { name: 'Changelog', value: changelog || 'No changelog provided', inline: false }
-                            );
-                        }
-
                         embeds.push(embed);
                     }
                 } catch (error) {
