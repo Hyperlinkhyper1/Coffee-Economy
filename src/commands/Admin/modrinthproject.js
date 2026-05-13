@@ -164,8 +164,16 @@ export default {
 
                     if (latestVersions && latestVersions.length > 0) {
                         const latestVersion = latestVersions[0];
-                        const embed = ModrinthService.createUpdateEmbed(project.projectName, project.iconUrl, latestVersion);
 
+                        // Fetch full version details to get changelog
+                        let fullVersionDetails = latestVersion;
+                        try {
+                            fullVersionDetails = await ModrinthService.fetchVersionDetails(latestVersion.id);
+                        } catch (error) {
+                            logger.warn(`[MODRINTH] Could not fetch full version details for ${latestVersion.id}, using basic version data`);
+                        }
+
+                        const embed = ModrinthService.createUpdateEmbed(project.projectName, project.iconUrl, fullVersionDetails);
                         embeds.push(embed);
                     }
                 } catch (error) {

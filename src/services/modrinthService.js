@@ -277,7 +277,15 @@ class ModrinthService {
                 // Send notification
                 const channel = await client.channels.fetch(channelId);
                 if (channel && channel.isTextBased()) {
-                    const embed = this.createUpdateEmbed(projectName, iconUrl, newLatestVersion);
+                    // Fetch full version details to get changelog
+                    let fullVersionDetails = newLatestVersion;
+                    try {
+                        fullVersionDetails = await this.fetchVersionDetails(newLatestVersion.id);
+                    } catch (error) {
+                        logger.warn(`[MODRINTH] Could not fetch full version details for ${newLatestVersion.id}, using basic version data`);
+                    }
+
+                    const embed = this.createUpdateEmbed(projectName, iconUrl, fullVersionDetails);
                     await channel.send({ embeds: [embed] });
                     logger.info(`[MODRINTH] Sent update notification for ${projectName} to channel ${channelId}.`);
                 } else {
