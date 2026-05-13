@@ -74,8 +74,8 @@ export default {
                 .setDescription(`Here are the statistics for Modrinth user **${userData.username}** (ID: \`${userData.id}\`).`)
                 .addFields(
                     { name: 'Total Projects', value: projectsData.length.toString(), inline: true },
-                    { name: 'Total Downloads', value: totalDownloads.toLocaleString(), inline: true },
-                    { name: 'Followers', value: userData.followers.toLocaleString(), inline: true },
+                    { name: 'Total Downloads', value: (totalDownloads ?? 0).toLocaleString(), inline: true }, // Safely handle totalDownloads
+                    { name: 'Followers', value: (userData.followers ?? 0).toLocaleString(), inline: true }, // Safely handle followers
                     { name: 'Project Types', value: projectTypes.size > 0 ? Array.from(projectTypes).map(type => type.charAt(0).toUpperCase() + type.slice(1)).join(', ') : 'N/A', inline: false },
                     { name: 'Loaders/Categories', value: projectCategories.size > 0 ? Array.from(projectCategories).map(cat => cat.charAt(0).toUpperCase() + cat.slice(1)).join(', ') : 'N/A', inline: false }
                 )
