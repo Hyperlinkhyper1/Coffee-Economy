@@ -1,8 +1,3 @@
-
-
-
-
-
 import { Events } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { getLevelingConfig, getUserLevelData } from '../services/leveling.js';
@@ -10,6 +5,7 @@ import { addXp } from '../services/xpSystem.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
 import { checkAndAnnounceAchievements } from '../config/achievements.js';
+import PingService from '../services/pingService.js'; // Import PingService
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -23,6 +19,7 @@ export default {
 
       await handleStatsTracking(message, client);
       await handleLeveling(message, client);
+      await handlePingReset(message, client); // Add this new handler
     } catch (error) {
       logger.error('Error in messageCreate event:', error);
     }
@@ -44,13 +41,6 @@ async function handleStatsTracking(message, client) {
     logger.error('Error tracking message stats:', error);
   }
 }
-
-
-
-
-
-
-
 
 async function handleLeveling(message, client) {
   try {
@@ -133,4 +123,35 @@ async function handleLeveling(message, client) {
   }
 }
 
+async function handlePingReset(message, client) {
+  try {
+    const guildId = message.guild.id;
+    const content = message.content.trim();
 
+    // Get all pings for the guild
+    const allPingIds = await client.db.get('pings:pending', []);
+    const guildPings = [];
+    for (const pingId of allPingIds) {
+        const pingData = await client.db.get(pingId);
+        if (pingData && pingData.guildId === guildId && pingData.commandToReset) {
+            guildPings.push(pingData);
+        }
+    }
+
+    for (const ping of guildPings) {
+        // Normalize the command to reset (e.g., remove leading slash if present)
+        const commandToResetNormalized = ping.commandToReset.startsWith('/')
+            ? ping.commandToReset.substring(1)
+            : ping.commandToReset;
+
+        // Check if the message content starts with the command to reset
+        // This handles both native Discord commands (e.g., /work) and bot commands (e.g., !work, .work)
+        if (content.startsWith(commandToResetNormalized) || content.startsWith(`/${commandToResetNormalized}`)) {
+            logger.info(`[PING] Command "${content}" matched reset command "${ping.commandToReset}" for ping ${ping.id}. Resetting timer.`);
+            await PingService.resetPing(client, ping.id);
+        }
+    }
+  } catch (error) {
+    logger.error('Error handling ping reset:', error);
+  }
+}

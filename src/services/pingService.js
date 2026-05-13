@@ -10,8 +10,9 @@ class PingService {
      * @param {string} roleId - Role ID to ping.
      * @param {number} delayMs - Delay in milliseconds.
      * @param {string} text - Message text.
+     * @param {string} [commandToReset] - Optional command that resets the ping timer.
      */
-    static async schedulePing(client, guildId, channelId, roleId, intervalMs, text) {
+    static async schedulePing(client, guildId, channelId, roleId, intervalMs, text, commandToReset) {
         const scheduledTime = Date.now() + intervalMs;
         const pingId = `ping:${guildId}:${Date.now()}:${Math.floor(Math.random() * 1000)}`;
         
@@ -23,7 +24,8 @@ class PingService {
             scheduledTime,
             intervalMs,
             text,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            commandToReset: commandToReset || null // Store the command to reset
         };
 
         try {
@@ -103,6 +105,32 @@ class PingService {
                 const updatedPings = pendingPings.filter(id => id !== pingData.id);
                 await client.db.set('pings:pending', updatedPings);
             }
+        }
+    }
+
+    /**
+     * Resets the timer for a specific ping.
+     * @param {object} client - Discord client.
+     * @param {string} pingId - The ID of the ping to reset.
+     */
+    static async resetPing(client, pingId) {
+        try {
+            const pingData = await client.db.get(pingId);
+            if (pingData && pingData.intervalMs) {
+                const nextTime = Date.now() + pingData.intervalMs;
+                const updatedPingData = {
+                    ...pingData,
+                    scheduledTime: nextTime
+                };
+                await client.db.set(pingData.id, updatedPingData);
+                this.setPingTimeout(client, updatedPingData);
+                logger.info(`[PING] Reset timer for recurring ping ${pingData.id}. Next ping at ${new Date(nextTime).toISOString()}`);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            logger.error(`[PING] Error resetting ping ${pingId}:`, error);
+            return false;
         }
     }
 
