@@ -48,11 +48,11 @@ export default {
                 )
         ),
 
-    async autocomplete(interaction) {
+    async autocomplete(interaction, client) { // Add client here
         const focusedOption = interaction.options.getFocused(true);
 
         if (focusedOption.name === 'ping_id') {
-            const pings = await PingService.getPingsForGuild(interaction.guildId);
+            const pings = await PingService.getPingsForGuild(client, interaction.guildId); // Pass client
             const choices = pings
                 .filter(ping => ping.id.startsWith(focusedOption.value))
                 .map(ping => ({ name: `Ping ID: ${ping.id} | Role: <@&${ping.roleId}> | Interval: ${ping.intervalMs / (1000 * 60)}m`, value: ping.id }));

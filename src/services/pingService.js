@@ -48,6 +48,53 @@ class PingService {
     }
 
     /**
+     * Deletes a scheduled ping.
+     * @param {string} pingId - The ID of the ping to delete.
+     * @param {string} guildId - The guild ID the ping belongs to.
+     * @returns {boolean} - True if deleted, false otherwise.
+     */
+    static async deletePing(pingId, guildId) {
+        try {
+            const pingData = await client.db.get(pingId);
+            if (pingData && pingData.guildId === guildId) {
+                await client.db.delete(pingId);
+                const pendingPings = await client.db.get('pings:pending', []);
+                const updatedPings = pendingPings.filter(id => id !== pingId);
+                await client.db.set('pings:pending', updatedPings);
+                logger.info(`[PING] Deleted ping ${pingId} from guild ${guildId}`);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            logger.error(`[PING] Error deleting ping ${pingId}:`, error);
+            return false;
+        }
+    }
+
+    /**
+     * Retrieves all pings for a specific guild.
+     * @param {object} client - Discord client.
+     * @param {string} guildId - The ID of the guild.
+     * @returns {Array<object>} - An array of ping data objects.
+     */
+    static async getPingsForGuild(client, guildId) {
+        try {
+            const allPingIds = await client.db.get('pings:pending', []);
+            const guildPings = [];
+            for (const pingId of allPingIds) {
+                const pingData = await client.db.get(pingId);
+                if (pingData && pingData.guildId === guildId) {
+                    guildPings.push(pingData);
+                }
+            }
+            return guildPings;
+        } catch (error) {
+            logger.error(`[PING] Error getting pings for guild ${guildId}:`, error);
+            return [];
+        }
+    }
+
+    /**
      * Sets a timeout to execute a ping.
      * @param {object} client 
      * @param {object} pingData 
