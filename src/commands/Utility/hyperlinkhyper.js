@@ -55,12 +55,14 @@ export default {
             const projectsData = await projectsResponse.json();
 
             let totalDownloads = 0;
+            let totalProjectFollowers = 0; // New variable to sum project followers
             const projectTypes = new Set();
             const projectCategories = new Set(); // e.g., 'fabric', 'forge', 'quilt'
 
             for (const project of projectsData) {
                 totalDownloads += project.downloads;
-                projectTypes.add(project.project_type); // e.g., 'mod', 'modpack', 'resourcepack'
+                totalProjectFollowers += project.followers; // Summing followers from each project
+                projectTypes.add(project.project_type); // e.g., 'mod', 'modpack, 'resourcepack'
                 if (project.loaders && Array.isArray(project.loaders)) {
                     project.loaders.forEach(loader => projectCategories.add(loader));
                 }
@@ -74,8 +76,8 @@ export default {
                 .setDescription(`Here are the statistics for Modrinth user **${userData.username}** (ID: \`${userData.id}\`).`)
                 .addFields(
                     { name: 'Total Projects', value: projectsData.length.toString(), inline: true },
-                    { name: 'Total Downloads', value: (totalDownloads ?? 0).toLocaleString(), inline: true }, // Safely handle totalDownloads
-                    { name: 'Followers', value: (userData.followers ?? 0).toLocaleString(), inline: true }, // Safely handle followers
+                    { name: 'Total Downloads', value: (totalDownloads ?? 0).toLocaleString(), inline: true },
+                    { name: 'Total Project Followers', value: (totalProjectFollowers ?? 0).toLocaleString(), inline: true }, // Displaying summed project followers
                     { name: 'Project Types', value: projectTypes.size > 0 ? Array.from(projectTypes).map(type => type.charAt(0).toUpperCase() + type.slice(1)).join(', ') : 'N/A', inline: false },
                     { name: 'Loaders/Categories', value: projectCategories.size > 0 ? Array.from(projectCategories).map(cat => cat.charAt(0).toUpperCase() + cat.slice(1)).join(', ') : 'N/A', inline: false }
                 )
