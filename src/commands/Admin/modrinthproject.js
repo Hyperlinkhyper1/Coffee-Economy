@@ -165,6 +165,10 @@ export default {
                     if (latestVersions && latestVersions.length > 0) {
                         const latestVersion = latestVersions[0];
                         const embed = ModrinthService.createUpdateEmbed(project.projectName, project.iconUrl, latestVersion);
+                        // Add notification channel field
+                        embed.addFields(
+                            { name: 'Notification Channel', value: `<#${project.channelId}>`, inline: true }
+                        );
                         embeds.push(embed);
                     }
                 } catch (error) {
