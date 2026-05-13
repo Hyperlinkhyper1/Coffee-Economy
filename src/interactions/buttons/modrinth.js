@@ -1,39 +1,12 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
-
-// This map is imported from the command and stores changelogs
-let changelogCache = null;
-
-// Function to set the cache reference
-export function setChangelogCache(cache) {
-    changelogCache = cache;
-}
+import { changelogCache } from '../../commands/Admin/modrinthproject.js';
 
 export default {
     name: 'changelog_',
-    isPrefix: true,
     async execute(interaction, client) {
         try {
             const customId = interaction.customId;
-
-            // Import cache from command if not already set
-            if (!changelogCache) {
-                try {
-                    const { changelogCache: cache } = await import('../../commands/Admin/modrinthproject.js');
-                    changelogCache = cache;
-                } catch (error) {
-                    logger.warn('[MODRINTH] Could not import changelogCache:', error);
-                }
-            }
-
-            if (!changelogCache) {
-                await interaction.reply({
-                    content: '❌ Changelog data not available.',
-                    flags: MessageFlags.Ephemeral
-                });
-                return;
-            }
-
             const changelog = changelogCache.get(customId);
 
             if (!changelog) {
@@ -69,7 +42,7 @@ export default {
 
             // Clean up cache after 10 minutes to save memory
             setTimeout(() => {
-                changelogCache?.delete(customId);
+                changelogCache.delete(customId);
             }, 600000);
 
             logger.debug(`[MODRINTH] Displayed changelog modal for: ${customId}`);
@@ -88,4 +61,6 @@ export default {
         }
     }
 };
+
+
 
