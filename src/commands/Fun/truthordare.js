@@ -14,17 +14,10 @@ const DATA_PATH = path.join(__dirname, '../../data/truthordare.json');
 export default {
     data: new SlashCommandBuilder()
         .setName('truthordare')
-        .setDescription('Play a game of Truth or Dare!')
-        .addUserOption(option => 
-            option.setName('target')
-                .setDescription('The user who has to answer/do the dare')
-                .setRequired(false)
-        ),
+        .setDescription('Play a game of Truth or Dare!'),
     category: 'Fun',
 
     execute: withErrorHandling(async (interaction, config, client) => {
-        const target = interaction.options.getUser('target') || interaction.user;
-        
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -40,12 +33,11 @@ export default {
             );
 
         const embed = infoEmbed(
-            `**${target.username}**, pick your poison! Truth or Dare?`,
+            "Pick your poison! Truth or Dare?",
             "🎲 Truth or Dare"
         );
 
         const response = await interaction.reply({
-            content: `<@${target.id}>`,
             embeds: [embed],
             components: [row]
         });
@@ -56,10 +48,6 @@ export default {
         });
 
         collector.on('collect', async (i) => {
-            if (i.user.id !== target.id) {
-                return i.reply({ content: `Only ${target.username} can choose!`, flags: 64 });
-            }
-
             try {
                 const data = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
                 const type = i.customId === 'tod_truth' ? 'truth' : 'dare';
@@ -68,12 +56,11 @@ export default {
 
                 const resultEmbed = createEmbed({
                     title: type === 'truth' ? '🤔 Truth' : '🔥 Dare',
-                    description: `**${target.username}**, your ${type} is:\n\n${randomQuestion}`,
+                    description: `**${i.user.username}**, your ${type} is:\n\n${randomQuestion}`,
                     color: type === 'truth' ? '#3498db' : '#e74c3c'
-                }).setThumbnail(target.displayAvatarURL());
+                }).setThumbnail(i.user.displayAvatarURL());
 
                 await i.update({
-                    content: `<@${target.id}>`,
                     embeds: [resultEmbed],
                     components: []
                 });
