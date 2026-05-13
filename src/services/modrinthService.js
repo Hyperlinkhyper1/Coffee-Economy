@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger.js';
 import { createError, ErrorTypes, TitanBotError } from '../utils/errorHandler.js';
 import { EmbedBuilder, AttachmentBuilder } from 'discord.js'; // Import EmbedBuilder for notifications
+import cron from 'node-cron'; // Import node-cron
 
 const MODRINTH_API_BASE = 'https://api.modrinth.com/v2';
 const MONITOR_INTERVAL_MINUTES = 10; // How often the cron job runs
@@ -368,6 +369,36 @@ class ModrinthService {
         embed.data.versionNumber = version.version_number;
 
         return embed;
+    }
+
+    /**
+     * Starts the Modrinth project monitoring cron job.
+     * This job will periodically check for updates for all monitored projects.
+     * @param {object} client - Discord client instance.
+     */
+    static startModrinthMonitor(client) {
+        // Schedule the cron job to run every MONITOR_INTERVAL_MINUTES
+        // The cron string '*/N * * * *' means "every N minutes"
+        cron.schedule(`*/${MONITOR_INTERVAL_MINUTES} * * * *`, async () => {
+            logger.info(`[MODRINTH] Running scheduled Modrinth monitor check (every ${MONITOR_INTERVAL_MINUTES} minutes)...`);
+            if (!client.isReady() || !client.db || client.db.getStatus().isDegraded) {
+                logger.warn('[MODRINTH] Skipping scheduled check: Client not ready or database degraded.');
+                return;
+            }
+
+            try {
+                const allMonitoredProjects = await this.getAllMonitoredProjects(client);
+                logger.debug(`[MODRINTH] Found ${allMonitoredProjects.length} projects to monitor.`);
+
+                for (const project of allMonitoredProjects) {
+                    await this.checkAndUpdateProject(client, project);
+                }
+                logger.info('[MODRINTH] Modrinth monitor check complete.');
+            } catch (error) {
+                logger.error('[MODRINTH] Error during scheduled Modrinth monitor check:', error);
+            }
+        });
+        logger.info(`[MODRINTH] Modrinth monitor cron job scheduled to run every ${MONITOR_INTERVAL_MINUTES} minutes.`);
     }
 }
 

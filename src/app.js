@@ -239,6 +239,7 @@ class TitanBot extends Client {
     cron.schedule('* * * * *', () => checkGiveaways(this));
     cron.schedule('*/15 * * * *', () => this.updateAllCounters());
     cron.schedule('* * * * *', () => ForumAlertService.processAlerts(this));
+    ModrinthService.startModrinthMonitor(this); // Start the Modrinth monitor
 
     // Re-enabled and enhanced cron job for card pack shop restock every 15 minutes
     cron.schedule('*/15 * * * *', async () => {
