@@ -115,19 +115,14 @@ export default {
                 // 1. Dynamically fetch user ID by username
                 const userSearchResponse = await fetch(`${CURSEFORGE_API_BASE}/v1/users/search?username=${CURSEFORGE_USERNAME}`, { headers });
                 if (!userSearchResponse.ok) {
-                    if (userSearchResponse.status === 404) {
-                        throw createError(
-                            "CurseForge User Not Found",
-                            ErrorTypes.EXTERNAL_API,
-                            `CurseForge user \`${CURSEFORGE_USERNAME}\` not found.`,
-                            { username: CURSEFORGE_USERNAME, statusCode: userSearchResponse.status }
-                        );
-                    }
+                    // Log the full response for debugging
+                    const errorBody = await userSearchResponse.text();
+                    logger.error(`[CURSEFORGE_USER_STATS] User search failed for ${CURSEFORGE_USERNAME}. Status: ${userSearchResponse.status}, Body: ${errorBody}`);
                     throw createError(
                         "CurseForge API Error",
                         ErrorTypes.EXTERNAL_API,
                         `Failed to search for user \`${CURSEFORGE_USERNAME}\` on CurseForge API. Status: ${userSearchResponse.status}`,
-                        { username: CURSEFORGE_USERNAME, statusCode: userSearchResponse.status, statusText: userSearchResponse.statusText }
+                        { username: CURSEFORGE_USERNAME, statusCode: userSearchResponse.status, statusText: userSearchResponse.statusText, responseBody: errorBody }
                     );
                 }
                 const userSearchData = await userSearchResponse.json();
@@ -145,11 +140,14 @@ export default {
                 const projectsResponse = await fetch(`${CURSEFORGE_API_BASE}/v1/mods/search?gameId=432&userId=${curseforgeUserId}`, { headers });
 
                 if (!projectsResponse.ok) {
+                    // Log the full response for debugging
+                    const errorBody = await projectsResponse.text();
+                    logger.error(`[CURSEFORGE_USER_STATS] Project fetch failed for user ${CURSEFORGE_USERNAME} (ID: ${curseforgeUserId}). Status: ${projectsResponse.status}, Body: ${errorBody}`);
                     throw createError(
                         "CurseForge API Error",
                         ErrorTypes.EXTERNAL_API,
                         `Failed to fetch projects for user \`${CURSEFORGE_USERNAME}\` (ID: ${curseforgeUserId}) from CurseForge API. Status: ${projectsResponse.status}`,
-                        { username: CURSEFORGE_USERNAME, userId: curseforgeUserId, statusCode: projectsResponse.status, statusText: projectsResponse.statusText }
+                        { username: CURSEFORGE_USERNAME, userId: curseforgeUserId, statusCode: projectsResponse.status, statusText: projectsResponse.statusText, responseBody: errorBody }
                     );
                 }
                 const projectsData = await projectsResponse.json();
