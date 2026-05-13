@@ -334,15 +334,10 @@ class ModrinthService {
             .setFooter({ text: `Modrinth Project ID: ${version.project_id}` })
             .setTimestamp();
 
-        // Add changelog if available
-        if (version.body) {
-            const changelog = version.body.length > 1024
-                ? version.body.substring(0, 1021) + '...'
-                : version.body;
-            embed.addFields(
-                { name: 'Changelog', value: changelog || 'No changelog provided', inline: false }
-            );
-        }
+        // Store changelog in embed data for button access
+        embed.data.changelog = version.body || 'No changelog provided';
+        embed.data.projectId = version.project_id;
+        embed.data.versionNumber = version.version_number;
 
         return embed;
     }

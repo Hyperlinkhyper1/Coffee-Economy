@@ -1,9 +1,12 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed } from '../../utils/embeds.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import ModrinthService from '../../services/modrinthService.js';
 import { logger } from '../../utils/logger.js';
+
+// Global storage for changelogs (temporary, maps version ID to changelog)
+const changelogCache = new Map();
 
 export default {
     data: new SlashCommandBuilder()
@@ -192,8 +195,26 @@ export default {
 
             // Split embeds into groups of 10 (Discord limit per message)
             const embedGroups = [];
+            const buttonGroups = [];
+
             for (let i = 0; i < embeds.length; i += 10) {
-                embedGroups.push(embeds.slice(i, i + 10));
+                const groupEmbeds = embeds.slice(i, i + 10);
+                embedGroups.push(groupEmbeds);
+
+                // Create buttons for this group
+                const buttons = [];
+                for (const embed of groupEmbeds) {
+                    const changelogId = `changelog_${embed.data.projectId}_${embed.data.versionNumber}`;
+                    changelogCache.set(changelogId, embed.data.changelog);
+
+                    buttons.push(
+                        new ButtonBuilder()
+                            .setCustomId(changelogId)
+                            .setLabel('📖 View Changelog')
+                            .setStyle(ButtonStyle.Secondary)
+                    );
+                }
+                buttonGroups.push(new ActionRowBuilder().addComponents(buttons));
             }
 
             // Send first group
@@ -203,12 +224,16 @@ export default {
 
             await InteractionHelper.safeEditReply(interaction, {
                 content: content || undefined,
-                embeds: embedGroups[0]
+                embeds: embedGroups[0],
+                components: [buttonGroups[0]]
             });
 
             // Send additional groups as follow-ups
             for (let i = 1; i < embedGroups.length; i++) {
-                await interaction.followUp({ embeds: embedGroups[i] }).catch(err => {
+                await interaction.followUp({
+                    embeds: embedGroups[i],
+                    components: [buttonGroups[i]]
+                }).catch(err => {
                     logger.warn('[MODRINTH] Failed to send follow-up message:', err);
                 });
             }
@@ -217,3 +242,5 @@ export default {
         }
     }, { command: 'modrinthproject' })
 };
+
+export { changelogCache };
