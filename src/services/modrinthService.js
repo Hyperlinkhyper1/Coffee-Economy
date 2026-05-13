@@ -79,6 +79,34 @@ class ModrinthService {
     }
 
     /**
+     * Fetches specific version details from Modrinth API.
+     * @param {string} versionId - Modrinth version ID.
+     * @returns {object} Version details.
+     */
+    static async fetchVersionDetails(versionId) {
+        try {
+            const response = await fetch(`${MODRINTH_API_BASE}/version/${versionId}`);
+            if (!response.ok) {
+                throw createError(
+                    "Modrinth API Error",
+                    ErrorTypes.EXTERNAL_API,
+                    `Failed to fetch version details for \`${versionId}\` from Modrinth API. Status: ${response.status}`,
+                    { versionId, statusCode: response.status, statusText: response.statusText }
+                );
+            }
+            return await response.json();
+        } catch (error) {
+            if (error instanceof TitanBotError) throw error;
+            throw createError(
+                "Modrinth API Request Failed",
+                ErrorTypes.EXTERNAL_API,
+                `Could not connect to Modrinth API for version \`${versionId}\`.`,
+                { versionId, originalError: error.message }
+            );
+        }
+    }
+
+    /**
      * Adds a Modrinth project to be monitored for updates.
      * @param {object} client - Discord client instance.
      * @param {string} guildId - Discord guild ID.
@@ -335,7 +363,7 @@ class ModrinthService {
             .setTimestamp();
 
         // Store changelog in embed data for button access
-        embed.data.changelog = version.body || 'No changelog provided';
+        embed.data.changelog = version.changelog || 'No changelog provided';
         embed.data.projectId = version.project_id;
         embed.data.versionNumber = version.version_number;
 
