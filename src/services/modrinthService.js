@@ -308,7 +308,7 @@ class ModrinthService {
         const releaseDate = new Date(version.date_published).toLocaleString();
         const versionLink = `https://modrinth.com/mod/${version.project_id}/version/${version.version_number}`; // Construct version link
 
-        return new EmbedBuilder()
+        const embed = new EmbedBuilder()
             .setColor('#36393F') // Modrinth-like color
             .setTitle(`⬆️ ${projectName} Updated!`)
             .setURL(`https://modrinth.com/mod/${version.project_id}`) // Link to project page
@@ -325,6 +325,18 @@ class ModrinthService {
             )
             .setFooter({ text: `Modrinth Project ID: ${version.project_id}` })
             .setTimestamp();
+
+        // Add changelog if available
+        if (version.body) {
+            const changelog = version.body.length > 1024
+                ? version.body.substring(0, 1021) + '...'
+                : version.body;
+            embed.addFields(
+                { name: 'Changelog', value: changelog || 'No changelog provided', inline: false }
+            );
+        }
+
+        return embed;
     }
 }
 
