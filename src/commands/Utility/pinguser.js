@@ -8,7 +8,7 @@ import { logger } from '../../utils/logger.js';
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('ping')
+        .setName('pinguser')
         .setDescription('Schedule a role ping for later.')
         .setDefaultMemberPermissions(PermissionFlagsBits.MentionEveryone)
         .addRoleOption(option =>
@@ -65,5 +65,5 @@ export default {
             }
             throw error; // Let withErrorHandling handle unexpected errors
         }
-    }, { command: 'ping' })
+    }, { command: 'pinguser' })
 };
