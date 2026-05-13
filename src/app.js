@@ -15,6 +15,7 @@ import { ForumAlertService } from './services/forumAlertService.js';
 import ModrinthService from './services/modrinthService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
 import CardService from './services/cardService.js'; // Import CardService
+import PingService from './services/pingService.js';
 
 class TitanBot extends Client {
   constructor() {
@@ -86,6 +87,9 @@ class TitanBot extends Client {
       startupLog('Logging into Discord...');
       await this.login(this.config.bot.token);
       startupLog('Discord login successful');
+      
+      startupLog('Initializing Ping Service...');
+      await PingService.init(this);
       
       startupLog('Registering slash commands...');
       await this.registerCommands();
