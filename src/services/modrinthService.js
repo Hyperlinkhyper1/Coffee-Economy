@@ -148,7 +148,7 @@ class ModrinthService {
                 projectName: projectDetails.title,
                 channelId: channelId,
                 lastChecked: Date.now(),
-                latestVersionId: latestVersion.id,
+                latestVersionId: latestVersion.id, // Store version ID
                 latestVersionNumber: latestVersion.version_number,
                 iconUrl: projectDetails.icon_url,
                 dateAdded: Date.now()
@@ -282,7 +282,7 @@ class ModrinthService {
      * @param {object} monitoredProject - The project data from the database.
      */
     static async checkAndUpdateProject(client, monitoredProject) {
-        const { projectId, channelId, latestVersionNumber, projectName, iconUrl, guildId } = monitoredProject;
+        const { projectId, channelId, latestVersionId, latestVersionNumber, projectName, iconUrl, guildId } = monitoredProject;
         const key = `modrinth:monitor:${guildId}:${projectId}`;
 
         try {
@@ -294,8 +294,9 @@ class ModrinthService {
 
             const newLatestVersion = latestVersions[0];
 
-            if (newLatestVersion.version_number !== latestVersionNumber) {
-                logger.info(`[MODRINTH] New version detected for ${projectName} (${projectId}): ${newLatestVersion.version_number}`);
+            // Compare by version ID for a more robust check
+            if (newLatestVersion.id !== latestVersionId) {
+                logger.info(`[MODRINTH] New version detected for ${projectName} (${projectId}): ${newLatestVersion.version_number} (ID: ${newLatestVersion.id})`);
 
                 // Update stored latest version in DB
                 monitoredProject.latestVersionId = newLatestVersion.id;
@@ -321,7 +322,7 @@ class ModrinthService {
                     logger.warn(`[MODRINTH] Notification channel ${channelId} for project ${projectName} not found or not text-based.`);
                 }
             } else {
-                logger.debug(`[MODRINTH] No new version for ${projectName} (${projectId}). Current: ${latestVersionNumber}`);
+                logger.debug(`[MODRINTH] No new version for ${projectName} (${projectId}). Current: ${latestVersionNumber} (ID: ${latestVersionId})`);
                 // Update last checked timestamp even if no new version
                 monitoredProject.lastChecked = Date.now();
                 await client.db.set(key, monitoredProject);
