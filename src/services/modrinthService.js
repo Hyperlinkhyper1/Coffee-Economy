@@ -207,7 +207,6 @@ class ModrinthService {
                     logger.warn(`[MODRINTH] Orphaned project ID ${projectId} found in list for guild ${guildId}. Cleaning up.`);
                     monitoredList = monitoredList.filter(id => id !== projectId);
                     await client.db.set(listKey, monitoredList);
-
                 }
             }
             return projects;
@@ -228,26 +227,20 @@ class ModrinthService {
      * @returns {object[]} Array of all monitored project data.
      */
     static async getAllMonitoredProjects(client) {
-        // Assuming client.db.list can handle wildcards to get all relevant keys
-        // This might need adjustment based on the actual DB implementation (e.g., if it's a custom wrapper)
-        const allKeys = await client.db.list('modrinth:monitor:*');
+        // Assuming client.db.listKeys can handle wildcards or we need to iterate guilds
+        // For now, let's assume a direct key lookup is possible if we store a global list,
+        // or we iterate through all guilds the bot is in.
+        // Given the current key structure `modrinth:monitor:guildId:projectId`,
+        // we'll need to iterate through guilds to get their lists.
         const allMonitoredProjects = [];
-        for (const key of allKeys) {
-            // Extract guildId and projectId from key: modrinth:monitor:guildId:projectId
-            const parts = key.split(':');
-            // Ensure it's a project key, not a list key (e.g., modrinth:monitor:list:guildId)
-            if (parts.length === 4 && parts[1] === 'monitor' && parts[2] !== 'list') {
-                const guildId = parts[2];
-                const projectId = parts[3];
+        const guildIds = client.guilds.cache.map(guild => guild.id); // Get all guild IDs the bot is in
 
-                const projectData = await client.db.get(key);
-                if (projectData) {
-                    allMonitoredProjects.push(projectData);
-                } else {
-                    logger.warn(`[MODRINTH] Orphaned key ${key} found. Data missing. Considering removing from list.`);
-                    // This is a more complex cleanup. For now, just log.
-                    // A full cleanup would involve iterating all list keys and removing this projectId.
-                }
+        for (const guildId of guildIds) {
+            try {
+                const projectsInGuild = await this.getMonitoredProjects(client, guildId);
+                allMonitoredProjects.push(...projectsInGuild);
+            } catch (error) {
+                logger.error(`[MODRINTH] Error getting monitored projects for guild ${guildId} during global fetch:`, error);
             }
         }
         return allMonitoredProjects;
@@ -328,7 +321,7 @@ class ModrinthService {
                 { name: 'Loaders', value: version.loaders.join(', ') || 'N/A', inline: true },
                 { name: 'File Size', value: `${fileSizeKB} KB` || 'N/A', inline: true },
                 { name: 'Released On', value: releaseDate, inline: false },
-                { name: 'Download', value: `[Click Here](${primaryFile?.url || versionLink})`, inline: false } // Link to file or version page
+                { name: 'Download', value: `[Click Here](${versionLink})`, inline: false } // Added link to version
             )
             .setFooter({ text: `Modrinth Project ID: ${version.project_id}` })
             .setTimestamp();
@@ -336,4 +329,3 @@ class ModrinthService {
 }
 
 export default ModrinthService;
-
