@@ -41,6 +41,11 @@ export default {
             subcommand
                 .setName('list')
                 .setDescription('List all Modrinth projects currently being monitored in this server.')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('ping')
+                .setDescription('Ping all currently monitored projects to fetch their latest versions.')
         ),
 
     async autocomplete(interaction) {
@@ -134,6 +139,72 @@ export default {
             });
 
             return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        }
+
+        if (subcommand === 'ping') {
+            const deferred = await InteractionHelper.safeDefer(interaction);
+            if (!deferred) return;
+
+            const monitoredProjects = await ModrinthService.getMonitoredProjects(client, guildId);
+
+            if (monitoredProjects.length === 0) {
+                const embed = infoEmbed(
+                    '📡 Modrinth Projects Ping',
+                    'No Modrinth projects are currently being monitored in this server.'
+                );
+                return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+            }
+
+            const embeds = [];
+            const failedProjects = [];
+
+            for (const project of monitoredProjects) {
+                try {
+                    const latestVersions = await ModrinthService.fetchProjectVersions(project.projectId);
+
+                    if (latestVersions && latestVersions.length > 0) {
+                        const latestVersion = latestVersions[0];
+                        const embed = ModrinthService.createUpdateEmbed(project.projectName, project.iconUrl, latestVersion);
+                        embeds.push(embed);
+                    }
+                } catch (error) {
+                    logger.warn(`[MODRINTH] Failed to fetch latest version for project ${project.projectId} during ping:`, error);
+                    failedProjects.push(project.projectName);
+                }
+            }
+
+            if (embeds.length === 0) {
+                const embed = errorEmbed(
+                    '❌ Ping Failed',
+                    'Could not fetch version information for any monitored projects.'
+                );
+                return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+            }
+
+            // Split embeds into groups of 10 (Discord limit per message)
+            const embedGroups = [];
+            for (let i = 0; i < embeds.length; i += 10) {
+                embedGroups.push(embeds.slice(i, i + 10));
+            }
+
+            // Send first group
+            const content = failedProjects.length > 0
+                ? `⚠️ Failed to fetch for: ${failedProjects.join(', ')}`
+                : '';
+
+            await InteractionHelper.safeEditReply(interaction, {
+                content: content || undefined,
+                embeds: embedGroups[0]
+            });
+
+            // Send additional groups as follow-ups
+            for (let i = 1; i < embedGroups.length; i++) {
+                await interaction.followUp({ embeds: embedGroups[i] }).catch(err => {
+                    logger.warn('[MODRINTH] Failed to send follow-up message:', err);
+                });
+            }
+
+            return;
         }
     }, { command: 'modrinthproject' })
 };
