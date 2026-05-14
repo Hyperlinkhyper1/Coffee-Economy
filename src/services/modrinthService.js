@@ -147,6 +147,7 @@ class ModrinthService {
                 projectId: projectDetails.id, // Store canonical ID
                 projectSlug: projectDetails.slug,
                 projectName: projectDetails.title,
+                guildId: guildId, // Added guildId
                 channelId: channelId,
                 lastChecked: Date.now(),
                 latestVersionId: latestVersion.id, // Store version ID
@@ -231,6 +232,7 @@ class ModrinthService {
                 const key = `modrinth:monitor:${guildId}:${projectId}`;
                 const projectData = unwrapReplitData(await client.db.get(key)); // Unwrap here too
                 if (projectData) {
+                    projectData.guildId = guildId; // Inject guildId for backward compatibility
                     projects.push(projectData);
                 } else {
                     // Clean up orphaned entry in list if data is missing
