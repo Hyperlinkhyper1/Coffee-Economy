@@ -2,6 +2,7 @@ import { logger } from '../utils/logger.js';
 import { createError, ErrorTypes, TitanBotError } from '../utils/errorHandler.js';
 import { EmbedBuilder, AttachmentBuilder } from 'discord.js'; // Import EmbedBuilder for notifications
 import cron from 'node-cron'; // Import node-cron
+import { unwrapReplitData } from '../utils/database.js'; // Import unwrapReplitData
 
 const MODRINTH_API_BASE = 'https://api.modrinth.com/v2';
 const MONITOR_INTERVAL_MINUTES = 10; // How often the cron job runs
@@ -120,7 +121,7 @@ class ModrinthService {
         const listKey = `modrinth:monitor:list:${guildId}`;
 
         try {
-            const existing = await client.db.get(key);
+            const existing = unwrapReplitData(await client.db.get(key)); // Unwrap here too
             if (existing) {
                 throw createError(
                     "Project Already Monitored",
@@ -156,7 +157,7 @@ class ModrinthService {
 
             await client.db.set(key, monitorData);
 
-            const monitoredList = await client.db.get(listKey, []);
+            const monitoredList = unwrapReplitData(await client.db.get(listKey, [])); // Unwrap here too
             if (!monitoredList.includes(projectDetails.id)) {
                 monitoredList.push(projectDetails.id);
                 await client.db.set(listKey, monitoredList);
@@ -187,7 +188,7 @@ class ModrinthService {
         const listKey = `modrinth:monitor:list:${guildId}`;
 
         try {
-            const existing = await client.db.get(key);
+            const existing = unwrapReplitData(await client.db.get(key)); // Unwrap here too
             if (!existing) {
                 throw createError(
                     "Project Not Monitored",
@@ -198,7 +199,7 @@ class ModrinthService {
 
             await client.db.delete(key);
 
-            let monitoredList = await client.db.get(listKey, []);
+            let monitoredList = unwrapReplitData(await client.db.get(listKey, [])); // Unwrap here too
             monitoredList = monitoredList.filter(id => id !== existing.projectId); // Filter by canonical ID
             await client.db.set(listKey, monitoredList);
 
@@ -224,11 +225,11 @@ class ModrinthService {
     static async getMonitoredProjects(client, guildId) {
         const listKey = `modrinth:monitor:list:${guildId}`;
         try {
-            const monitoredList = await client.db.get(listKey, []);
+            const monitoredList = unwrapReplitData(await client.db.get(listKey, [])); // Unwrap here too
             const projects = [];
             for (const projectId of monitoredList) {
                 const key = `modrinth:monitor:${guildId}:${projectId}`;
-                const projectData = await client.db.get(key);
+                const projectData = unwrapReplitData(await client.db.get(key)); // Unwrap here too
                 if (projectData) {
                     projects.push(projectData);
                 } else {
@@ -274,11 +275,11 @@ class ModrinthService {
     /**
      * Checks for updates for a specific project and sends a notification if a new version is found.
      * @param {object} client - Discord client instance.
-     * @param {object} monitoredProject - The project data from the database.
+     * @param {object} monitoredProjectRaw - The raw project data from the database.
      */
     static async checkAndUpdateProject(client, monitoredProjectRaw) {
         // Explicitly unwrap the data to ensure we're working with the correct structure
-        const monitoredProject = client.db.unwrapReplitData(monitoredProjectRaw);
+        const monitoredProject = unwrapReplitData(monitoredProjectRaw);
 
         const { projectId, channelId, latestVersionId, latestVersionNumber, projectName, iconUrl, guildId } = monitoredProject;
         const key = `modrinth:monitor:${guildId}:${projectId}`;
@@ -304,6 +305,10 @@ class ModrinthService {
                 monitoredProject.lastChecked = Date.now();
                 await client.db.set(key, monitoredProject);
                 logger.debug(`[MODRINTH] Updated DB for ${projectName} (${projectId}) with new latestVersionId: ${monitoredProject.latestVersionId}`);
+
+                // Immediately retrieve the value to confirm it was saved correctly
+                const confirmedProjectData = unwrapReplitData(await client.db.get(key));
+                logger.debug(`[MODRINTH] Confirmed DB value for ${projectName} (${projectId}) after set: ${confirmedProjectData?.latestVersionId}`);
 
 
                 // Send notification
