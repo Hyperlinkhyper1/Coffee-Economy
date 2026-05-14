@@ -49,11 +49,12 @@ class PingService {
 
     /**
      * Deletes a scheduled ping.
+     * @param {object} client - Discord client.
      * @param {string} pingId - The ID of the ping to delete.
      * @param {string} guildId - The guild ID the ping belongs to.
      * @returns {boolean} - True if deleted, false otherwise.
      */
-    static async deletePing(pingId, guildId) {
+    static async deletePing(client, pingId, guildId) {
         try {
             const pingData = await client.db.get(pingId);
             if (pingData && pingData.guildId === guildId) {
@@ -136,15 +137,28 @@ class PingService {
             logger.error(`[PING] Failed to send ping message for ${pingData.id}:`, error);
         } finally {
             if (pingData.intervalMs) {
-                // Recurring ping: update scheduledTime and save back to DB
-                const nextTime = Date.now() + pingData.intervalMs;
-                const updatedPingData = {
-                    ...pingData,
-                    scheduledTime: nextTime
-                };
-                await client.db.set(pingData.id, updatedPingData);
-                this.setPingTimeout(client, updatedPingData);
-                logger.info(`[PING] Rescheduled recurring ping ${pingData.id} for ${new Date(nextTime).toISOString()}`);
+                // Recurring ping
+                if (pingData.commandToReset) {
+                    // If there's a command to reset, we WAIT for it.
+                    // Mark as waiting for reset and update DB without scheduling next timeout.
+                    const updatedPingData = {
+                        ...pingData,
+                        isWaitingForReset: true,
+                        scheduledTime: 0 // Set to 0 to indicate it's not currently active
+                    };
+                    await client.db.set(pingData.id, updatedPingData);
+                    logger.info(`[PING] Recurring ping ${pingData.id} is now waiting for reset command "${pingData.commandToReset}"`);
+                } else {
+                    // Normal recurring ping: update scheduledTime and save back to DB
+                    const nextTime = Date.now() + pingData.intervalMs;
+                    const updatedPingData = {
+                        ...pingData,
+                        scheduledTime: nextTime
+                    };
+                    await client.db.set(pingData.id, updatedPingData);
+                    this.setPingTimeout(client, updatedPingData);
+                    logger.info(`[PING] Rescheduled recurring ping ${pingData.id} for ${new Date(nextTime).toISOString()}`);
+                }
             } else {
                 // One-time ping: clean up
                 await client.db.delete(pingData.id);
@@ -167,7 +181,8 @@ class PingService {
                 const nextTime = Date.now() + pingData.intervalMs;
                 const updatedPingData = {
                     ...pingData,
-                    scheduledTime: nextTime
+                    scheduledTime: nextTime,
+                    isWaitingForReset: false // Clear the waiting flag
                 };
                 await client.db.set(pingData.id, updatedPingData);
                 this.setPingTimeout(client, updatedPingData);
@@ -193,6 +208,12 @@ class PingService {
             for (const pingId of pendingPings) {
                 const pingData = await client.db.get(pingId);
                 if (pingData) {
+                    // Skip pings that are waiting for a reset command
+                    if (pingData.isWaitingForReset) {
+                        logger.debug(`[PING] Skipping ping ${pingId} in init: Waiting for reset command`);
+                        continue;
+                    }
+
                     if (pingData.scheduledTime <= Date.now()) {
                         // If it should have fired already, fire it now
                         await this.executePing(client, pingData);

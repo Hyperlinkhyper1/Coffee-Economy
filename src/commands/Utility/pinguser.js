@@ -112,7 +112,7 @@ export default {
             const pingId = interaction.options.getString('ping_id');
 
             try {
-                const deleted = await PingService.deletePing(pingId, interaction.guildId);
+                const deleted = await PingService.deletePing(client, pingId, interaction.guildId);
 
                 if (deleted) {
                     const embed = successEmbed(
