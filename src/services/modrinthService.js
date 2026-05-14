@@ -294,6 +294,8 @@ class ModrinthService {
 
             const newLatestVersion = latestVersions[0];
 
+            logger.debug(`[MODRINTH] Project ${projectName} (${projectId}): Comparing stored ID '${latestVersionId}' with new API ID '${newLatestVersion.id}'`);
+
             // Compare by version ID for a more robust check
             if (newLatestVersion.id !== latestVersionId) {
                 logger.info(`[MODRINTH] New version detected for ${projectName} (${projectId}): ${newLatestVersion.version_number} (ID: ${newLatestVersion.id})`);
@@ -303,6 +305,8 @@ class ModrinthService {
                 monitoredProject.latestVersionNumber = newLatestVersion.version_number;
                 monitoredProject.lastChecked = Date.now();
                 await client.db.set(key, monitoredProject);
+                logger.debug(`[MODRINTH] Updated DB for ${projectName} (${projectId}) with new latestVersionId: ${monitoredProject.latestVersionId}`);
+
 
                 // Send notification
                 const channel = await client.channels.fetch(channelId);
