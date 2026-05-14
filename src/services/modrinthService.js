@@ -256,13 +256,8 @@ class ModrinthService {
      * @returns {object[]} Array of all monitored project data.
      */
     static async getAllMonitoredProjects(client) {
-        // Assuming client.db.listKeys can handle wildcards or we need to iterate guilds
-        // For now, let's assume a direct key lookup is possible if we store a global list,
-        // or we iterate through all guilds the bot is in.
-        // Given the current key structure `modrinth:monitor:guildId:projectId`,
-        // we'll need to iterate through guilds to get their lists.
         const allMonitoredProjects = [];
-        const guildIds = client.guilds.cache.map(guild => guild.id); // Get all guild IDs the bot is in
+        const guildIds = client.guilds.cache.map(guild => guild.id);
 
         for (const guildId of guildIds) {
             try {
@@ -281,7 +276,10 @@ class ModrinthService {
      * @param {object} client - Discord client instance.
      * @param {object} monitoredProject - The project data from the database.
      */
-    static async checkAndUpdateProject(client, monitoredProject) {
+    static async checkAndUpdateProject(client, monitoredProjectRaw) {
+        // Explicitly unwrap the data to ensure we're working with the correct structure
+        const monitoredProject = client.db.unwrapReplitData(monitoredProjectRaw);
+
         const { projectId, channelId, latestVersionId, latestVersionNumber, projectName, iconUrl, guildId } = monitoredProject;
         const key = `modrinth:monitor:${guildId}:${projectId}`;
 
