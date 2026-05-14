@@ -120,7 +120,8 @@ export default {
             try {
                 const headers = {
                     'x-api-key': apiKey,
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'User-Agent': 'TitanBot/2.0.0 (https://github.com/Touchpoint-Support)'
                 };
 
                 // Discover User ID if not cached
