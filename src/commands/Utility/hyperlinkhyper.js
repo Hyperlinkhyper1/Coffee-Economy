@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import axios from 'axios';
 import { createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 
@@ -129,12 +130,13 @@ export default {
                 
                 if (!targetUserId || targetUserId === 'YOUR_NUMERIC_CURSEFORGE_USER_ID_HERE') {
                     logger.info(`[CURSEFORGE] Attempting to discover User ID for ${CURSEFORGE_USERNAME} via project ${CURSEFORGE_DISCOVERY_PROJECT}`);
-                    const searchResponse = await fetch(`${CURSEFORGE_API_BASE}/v1/mods/search?gameId=432&slug=${CURSEFORGE_DISCOVERY_PROJECT}`, { headers });
                     
-                    if (searchResponse.ok) {
-                        const searchData = await searchResponse.json();
-                        if (searchData.data && searchData.data.length > 0) {
-                            const project = searchData.data[0];
+                    try {
+                        const searchUrl = `${CURSEFORGE_API_BASE}/v1/mods/search?gameId=432&slug=${CURSEFORGE_DISCOVERY_PROJECT}`;
+                        const searchResponse = await axios.get(searchUrl, { headers });
+                        
+                        if (searchResponse.data && searchResponse.data.data && searchResponse.data.data.length > 0) {
+                            const project = searchResponse.data.data[0];
                             const author = project.authors.find(a => a.name.toLowerCase() === CURSEFORGE_USERNAME.toLowerCase());
                             if (author) {
                                 targetUserId = author.id.toString();
@@ -142,6 +144,8 @@ export default {
                                 logger.info(`[CURSEFORGE] Discovered User ID for ${CURSEFORGE_USERNAME}: ${targetUserId}`);
                             }
                         }
+                    } catch (error) {
+                        logger.warn(`[CURSEFORGE] Discovery fetch failed: ${error.message}`);
                     }
                 }
 
@@ -150,20 +154,11 @@ export default {
                 }
 
                 // 1. Fetch projects by the numeric user ID
-                const projectsResponse = await fetch(`${CURSEFORGE_API_BASE}/v1/mods/search?gameId=432&userId=${targetUserId}`, { headers });
-
-                if (!projectsResponse.ok) {
-                    const errorBody = await projectsResponse.text();
-                    logger.error(`[CURSEFORGE_USER_STATS] Project fetch failed for user ${CURSEFORGE_USERNAME} (ID: ${targetUserId}). Status: ${projectsResponse.status}, Body: ${errorBody}`);
-                    throw createError(
-                        "CurseForge API Error",
-                        ErrorTypes.EXTERNAL_API,
-                        `Failed to fetch projects for user \`${CURSEFORGE_USERNAME}\` (ID: ${targetUserId}) from CurseForge API. Status: ${projectsResponse.status}`,
-                        { username: CURSEFORGE_USERNAME, userId: targetUserId, statusCode: projectsResponse.status, statusText: projectsResponse.statusText, responseBody: errorBody }
-                    );
-                }
-                const projectsData = await projectsResponse.json();
-                const projects = projectsData.data;
+                const modsUrl = `${CURSEFORGE_API_BASE}/v1/mods/search?gameId=432&userId=${targetUserId}`;
+                logger.debug(`[CURSEFORGE] Fetching projects from: ${modsUrl}`);
+                
+                const projectsResponse = await axios.get(modsUrl, { headers });
+                const projects = projectsResponse.data.data;
 
                 let totalDownloads = 0;
                 let totalProjectFollowers = 0;
@@ -198,10 +193,18 @@ export default {
                 await interaction.editReply({ embeds: [embed] });
 
             } catch (error) {
-                logger.error(`[CURSEFORGE_USER_STATS] Error fetching stats for user ${CURSEFORGE_USERNAME}:`, error);
-                if (error.type === ErrorTypes.EXTERNAL_API || error.type === ErrorTypes.VALIDATION) {
-                    await interaction.editReply({ content: `❌ Error: ${error.message}`, ephemeral: true });
+                if (error.response) {
+                    const status = error.response.status;
+                    const data = JSON.stringify(error.response.data);
+                    logger.error(`[CURSEFORGE_USER_STATS] API Error: Status ${status}, Body: ${data}`);
+                    
+                    if (status === 403) {
+                        return interaction.editReply({ content: '❌ CurseForge API Error: Forbidden (403). Your API key might be invalid, expired, or restricted. Please check your `CURSEFORGE_API_KEY`.', ephemeral: true });
+                    }
+                    
+                    await interaction.editReply({ content: `❌ CurseForge API Error: ${status} - ${error.message}`, ephemeral: true });
                 } else {
+                    logger.error(`[CURSEFORGE_USER_STATS] Error fetching stats for user ${CURSEFORGE_USERNAME}:`, error);
                     await interaction.editReply({ content: '❌ An unexpected error occurred while fetching CurseForge user stats.', ephemeral: true });
                 }
             }
