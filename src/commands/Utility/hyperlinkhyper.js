@@ -4,7 +4,6 @@ import { logger } from '../../utils/logger.js';
 
 const MODRINTH_API_BASE = 'https://api.modrinth.com/v2';
 const CURSEFORGE_API_BASE = 'https://api.curseforge.com'; // Base URL for CurseForge API
-const CURSEFORGE_API_KEY = process.env.CURSEFORGE_API_KEY; // Get API key from environment variables
 
 const MODRINTH_USERNAME = 'hyperlinkhyper'; // Modrinth username
 const CURSEFORGE_USERNAME = 'hyperlink_hyper'; // CurseForge username
@@ -105,13 +104,20 @@ export default {
                 }
             }
         } else if (subcommand === 'curseforge') {
-            if (!CURSEFORGE_API_KEY) {
+            const apiKey = process.env.CURSEFORGE_API_KEY;
+            
+            if (!apiKey) {
+                logger.error('[CURSEFORGE] API Key is missing from process.env.CURSEFORGE_API_KEY');
                 return interaction.editReply({ content: '❌ CurseForge API key is not configured. Please set `CURSEFORGE_API_KEY` in your environment variables.', ephemeral: true });
+            }
+
+            if (apiKey.length < 10) {
+                logger.warn(`[CURSEFORGE] API Key seems suspiciously short (${apiKey.length} chars). It might not be loaded correctly.`);
             }
 
             try {
                 const headers = {
-                    'x-api-key': CURSEFORGE_API_KEY,
+                    'x-api-key': apiKey,
                     'Accept': 'application/json'
                 };
 
