@@ -104,16 +104,18 @@ export default {
                 }
             }
         } else if (subcommand === 'curseforge') {
-            const apiKey = process.env.CURSEFORGE_API_KEY;
+            const apiKey = process.env.CURSEFORGE_API_KEY?.trim();
             
             if (!apiKey) {
                 logger.error('[CURSEFORGE] API Key is missing from process.env.CURSEFORGE_API_KEY');
                 return interaction.editReply({ content: '❌ CurseForge API key is not configured. Please set `CURSEFORGE_API_KEY` in your environment variables.', ephemeral: true });
             }
 
-            if (apiKey.length < 10) {
-                logger.warn(`[CURSEFORGE] API Key seems suspiciously short (${apiKey.length} chars). It might not be loaded correctly.`);
-            }
+            // Log masked key for debugging on external server
+            const maskedKey = apiKey.length > 8 
+                ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` 
+                : '*** (too short)';
+            logger.info(`[CURSEFORGE] Using API Key: ${maskedKey} (Length: ${apiKey.length})`);
 
             try {
                 const headers = {
@@ -122,7 +124,9 @@ export default {
                 };
 
                 // Discover User ID if not cached
-                if (!cachedCurseForgeUserId) {
+                let targetUserId = cachedCurseForgeUserId?.trim();
+                
+                if (!targetUserId || targetUserId === 'YOUR_NUMERIC_CURSEFORGE_USER_ID_HERE') {
                     logger.info(`[CURSEFORGE] Attempting to discover User ID for ${CURSEFORGE_USERNAME} via project ${CURSEFORGE_DISCOVERY_PROJECT}`);
                     const searchResponse = await fetch(`${CURSEFORGE_API_BASE}/v1/mods/search?gameId=432&slug=${CURSEFORGE_DISCOVERY_PROJECT}`, { headers });
                     
@@ -132,28 +136,29 @@ export default {
                             const project = searchData.data[0];
                             const author = project.authors.find(a => a.name.toLowerCase() === CURSEFORGE_USERNAME.toLowerCase());
                             if (author) {
-                                cachedCurseForgeUserId = author.id.toString();
-                                logger.info(`[CURSEFORGE] Discovered User ID for ${CURSEFORGE_USERNAME}: ${cachedCurseForgeUserId}`);
+                                targetUserId = author.id.toString();
+                                cachedCurseForgeUserId = targetUserId; // Update cache
+                                logger.info(`[CURSEFORGE] Discovered User ID for ${CURSEFORGE_USERNAME}: ${targetUserId}`);
                             }
                         }
                     }
                 }
 
-                if (!cachedCurseForgeUserId) {
+                if (!targetUserId) {
                     return interaction.editReply({ content: `❌ Could not automatically determine CurseForge User ID for ${CURSEFORGE_USERNAME}. Please ensure the discovery project slug is correct or set \`CURSEFORGE_USER_ID\` in your environment.`, ephemeral: true });
                 }
 
                 // 1. Fetch projects by the numeric user ID
-                const projectsResponse = await fetch(`${CURSEFORGE_API_BASE}/v1/mods/search?gameId=432&userId=${cachedCurseForgeUserId}`, { headers });
+                const projectsResponse = await fetch(`${CURSEFORGE_API_BASE}/v1/mods/search?gameId=432&userId=${targetUserId}`, { headers });
 
                 if (!projectsResponse.ok) {
                     const errorBody = await projectsResponse.text();
-                    logger.error(`[CURSEFORGE_USER_STATS] Project fetch failed for user ${CURSEFORGE_USERNAME} (ID: ${cachedCurseForgeUserId}). Status: ${projectsResponse.status}, Body: ${errorBody}`);
+                    logger.error(`[CURSEFORGE_USER_STATS] Project fetch failed for user ${CURSEFORGE_USERNAME} (ID: ${targetUserId}). Status: ${projectsResponse.status}, Body: ${errorBody}`);
                     throw createError(
                         "CurseForge API Error",
                         ErrorTypes.EXTERNAL_API,
-                        `Failed to fetch projects for user \`${CURSEFORGE_USERNAME}\` (ID: ${cachedCurseForgeUserId}) from CurseForge API. Status: ${projectsResponse.status}`,
-                        { username: CURSEFORGE_USERNAME, userId: cachedCurseForgeUserId, statusCode: projectsResponse.status, statusText: projectsResponse.statusText, responseBody: errorBody }
+                        `Failed to fetch projects for user \`${CURSEFORGE_USERNAME}\` (ID: ${targetUserId}) from CurseForge API. Status: ${projectsResponse.status}`,
+                        { username: CURSEFORGE_USERNAME, userId: targetUserId, statusCode: projectsResponse.status, statusText: projectsResponse.statusText, responseBody: errorBody }
                     );
                 }
                 const projectsData = await projectsResponse.json();
