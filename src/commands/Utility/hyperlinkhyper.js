@@ -10,7 +10,7 @@ const MODRINTH_USERNAME = 'hyperlinkhyper'; // Modrinth username
 const CURSEFORGE_USERNAME = 'hyperlink_hyper'; // CurseForge username
 const CURSEFORGE_DISCOVERY_PROJECT = 'simply-cozy'; // Project slug to discover user ID
 
-let cachedCurseForgeUserId = process.env.CURSEFORGE_USER_ID;
+let cachedCurseForgeUserId = process.env.CURSEFORGE_USER_ID || '113515222';
 
 export default {
     data: new SlashCommandBuilder()
