@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
-import { createEmbed, successEmbed, errorEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, errorEmbed, infoEmbed } from '../../utils/embeds.js';
 import { withErrorHandling } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { parseDuration } from '../../services/giveawayService.js';
@@ -46,6 +46,11 @@ export default {
                         .setRequired(true)
                         .setAutocomplete(true)
                 )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('deleteall')
+                .setDescription('Delete ALL scheduled pings for this server.')
         ),
 
     async autocomplete(interaction, client) { // Add client here
@@ -135,6 +140,34 @@ export default {
                 const embed = errorEmbed(
                     '❌ Error Deleting Ping',
                     'An unexpected error occurred while trying to delete the ping.'
+                );
+                return await InteractionHelper.safeReply(interaction, { 
+                    embeds: [embed],
+                    flags: MessageFlags.Ephemeral 
+                });
+            }
+        } else if (subcommand === 'deleteall') {
+            try {
+                const deleteCount = await PingService.deleteAllPings(client, interaction.guildId);
+
+                if (deleteCount > 0) {
+                    const embed = successEmbed(
+                        '🗑️ All Pings Deleted',
+                        `Successfully deleted **${deleteCount}** scheduled pings for this server.`
+                    );
+                    return await InteractionHelper.safeReply(interaction, { embeds: [embed] });
+                } else {
+                    const embed = infoEmbed(
+                        '📋 No Pings to Delete',
+                        'There are no scheduled pings to delete in this server.'
+                    );
+                    return await InteractionHelper.safeReply(interaction, { embeds: [embed] });
+                }
+            } catch (error) {
+                logger.error(`Error deleting all pings in guild ${interaction.guildId}:`, error);
+                const embed = errorEmbed(
+                    '❌ Error Deleting Pings',
+                    'An unexpected error occurred while trying to delete all pings.'
                 );
                 return await InteractionHelper.safeReply(interaction, { 
                     embeds: [embed],

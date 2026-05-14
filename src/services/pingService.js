@@ -73,6 +73,41 @@ class PingService {
     }
 
     /**
+     * Deletes all pings for a specific guild.
+     * @param {object} client - Discord client.
+     * @param {string} guildId - The guild ID.
+     * @returns {Promise<number>} - The number of pings deleted.
+     */
+    static async deleteAllPings(client, guildId) {
+        try {
+            const allPingIds = await client.db.get('pings:pending', []);
+            let deleteCount = 0;
+            const remainingPingIds = [];
+
+            for (const pingId of allPingIds) {
+                const pingData = await client.db.get(pingId);
+                if (pingData && pingData.guildId === guildId) {
+                    await client.db.delete(pingId);
+                    deleteCount++;
+                    logger.info(`[PING] Deleted ping ${pingId} during mass deletion for guild ${guildId}`);
+                } else {
+                    remainingPingIds.push(pingId);
+                }
+            }
+
+            if (deleteCount > 0) {
+                await client.db.set('pings:pending', remainingPingIds);
+            }
+
+            logger.info(`[PING] Deleted ${deleteCount} pings for guild ${guildId}`);
+            return deleteCount;
+        } catch (error) {
+            logger.error(`[PING] Error deleting all pings for guild ${guildId}:`, error);
+            throw error;
+        }
+    }
+
+    /**
      * Retrieves all pings for a specific guild.
      * @param {object} client - Discord client.
      * @param {string} guildId - The ID of the guild.
