@@ -25,7 +25,7 @@ class PingService {
             intervalMs,
             text,
             createdAt: Date.now(),
-            commandToReset: commandToReset || null // Store the command to reset
+            commandToReset: commandToReset ? commandToReset.toLowerCase() : null // Store the command to reset in lowercase
         };
 
         try {
@@ -139,13 +139,28 @@ class PingService {
         const now = Date.now();
         const delay = Math.max(0, pingData.scheduledTime - now);
 
-        setTimeout(async () => {
+        // Clear any existing timeout for this ping to prevent duplicates
+        if (client.pingTimeouts && client.pingTimeouts.has(pingData.id)) {
+            clearTimeout(client.pingTimeouts.get(pingData.id));
+            client.pingTimeouts.delete(pingData.id);
+        }
+
+        const timeout = setTimeout(async () => {
             try {
                 await this.executePing(client, pingData);
             } catch (error) {
                 logger.error(`[PING] Error in ping timeout for ${pingData.id}:`, error);
+            } finally {
+                if (client.pingTimeouts) {
+                    client.pingTimeouts.delete(pingData.id);
+                }
             }
         }, delay);
+
+        if (!client.pingTimeouts) {
+            client.pingTimeouts = new Map();
+        }
+        client.pingTimeouts.set(pingData.id, timeout);
     }
 
     /**
@@ -232,20 +247,49 @@ class PingService {
     }
 
     /**
+     * Handles a command being used, checking if it should reset any waiting pings.
+     * @param {object} client - Discord client.
+     * @param {string} guildId - The ID of the guild where the command was used.
+     * @param {string} commandName - The name of the command that was used.
+     */
+    static async handleCommandUsed(client, guildId, commandName) {
+        try {
+            const pings = await this.getPingsForGuild(client, guildId);
+            const lowerCaseCommandName = commandName.toLowerCase();
+
+            for (const ping of pings) {
+                if (ping.isWaitingForReset && ping.commandToReset && ping.commandToReset.toLowerCase() === lowerCaseCommandName) {
+                    logger.info(`[PING] Resetting ping ${ping.id} due to command "${commandName}" usage.`);
+                    await this.resetPing(client, ping.id);
+                }
+            }
+        } catch (error) {
+            logger.error(`[PING] Error handling command used for ping reset in guild ${guildId} for command ${commandName}:`, error);
+        }
+    }
+
+    /**
      * Initializes pings from database on startup.
      * @param {object} client 
      */
     static async init(client) {
         try {
+            // Initialize client.pingTimeouts map
+            if (!client.pingTimeouts) {
+                client.pingTimeouts = new Map();
+            }
+
             const pendingPings = await client.db.get('pings:pending', []);
             logger.info(`[PING] Initializing ${pendingPings.length} pending pings from database`);
 
             for (const pingId of pendingPings) {
                 const pingData = await client.db.get(pingId);
                 if (pingData) {
-                    // Skip pings that are waiting for a reset command
+                    // If a ping was waiting for reset, and the bot restarted,
+                    // we should probably just reschedule it as if the command was used.
+                    // Or, alternatively, keep it waiting. For now, let's keep it waiting.
                     if (pingData.isWaitingForReset) {
-                        logger.debug(`[PING] Skipping ping ${pingId} in init: Waiting for reset command`);
+                        logger.debug(`[PING] Ping ${pingId} is waiting for reset command. Not rescheduling on init.`);
                         continue;
                     }
 

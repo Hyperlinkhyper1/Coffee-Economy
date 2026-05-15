@@ -7,6 +7,7 @@ import { InteractionHelper } from '../utils/interactionHelper.js';
 import { createInteractionTraceContext, runWithTraceContext } from '../utils/traceContext.js';
 import { validateChatInputPayloadOrThrow } from '../utils/commandInputValidation.js';
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
+import PingService from '../services/pingService.js'; // Import PingService
 
 function withTraceContext(context = {}, traceContext = {}) {
   return {
@@ -87,6 +88,12 @@ export default {
             }
 
             await command.execute(interaction, guildConfig, client);
+
+            // Check if this command should reset any pings
+            if (interaction.guildId) {
+              await PingService.handleCommandUsed(client, interaction.guildId, interaction.commandName);
+            }
+
           } catch (error) {
             await handleInteractionError(interaction, error, withTraceContext({
               type: 'command',
