@@ -373,8 +373,17 @@ class ModrinthService {
             .setFooter({ text: `Modrinth Project ID: ${version.project_id}` })
             .setTimestamp();
 
-        // Store changelog in embed data for button access
-        embed.data.changelog = version.changelog || 'No changelog provided';
+        const changelogContent = version.changelog || 'No changelog provided.';
+        const truncatedChangelog = changelogContent.length > 1020
+            ? changelogContent.substring(0, 1017) + '...'
+            : changelogContent;
+
+        embed.addFields(
+            { name: 'Changelog', value: truncatedChangelog, inline: false }
+        );
+
+        // Store changelog in embed data for button access (though now it's in the field)
+        embed.data.changelog = changelogContent; // Keep full changelog for potential button use if needed
         embed.data.projectId = version.project_id;
         embed.data.versionNumber = version.version_number;
 
