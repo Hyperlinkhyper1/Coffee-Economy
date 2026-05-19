@@ -7,13 +7,36 @@ class ForumAlertService {
         this.isPostgresAvailable = pgDb.isAvailable();
         if (this.isPostgresAvailable) {
             logger.info('ForumAlertService using PostgreSQL for persistence.');
-            // Subscriptions will be managed directly via pgDb methods, not a local map.
-            // We don't need to load all into memory on startup for pgDb.
+            this.subscriptions = null; // Not used when PostgreSQL is active
+            this.memoryStorageInstance = null; // Not used when PostgreSQL is active
         } else {
             this.memoryStorageInstance = new MemoryStorage();
-            this.subscriptions = this.memoryStorageInstance.get('forumAlertSubscriptions') || new Map();
-            this.memoryStorageInstance.set('forumAlertSubscriptions', this.subscriptions);
+            let stored = this.memoryStorageInstance.get('forumAlertSubscriptions');
+            if (stored instanceof Map) {
+                this.subscriptions = stored;
+            } else {
+                // If for some reason it's not a Map (e.g., first run, or corrupted data), initialize as new Map
+                logger.warn(`[FORUM_ALERT_SERVICE] Initializing memory subscriptions as new Map. Stored value was: ${stored}`);
+                this.subscriptions = new Map();
+                this.memoryStorageInstance.set('forumAlertSubscriptions', this.subscriptions);
+            }
             logger.warn('PostgreSQL not available. ForumAlertService falling back to memoryStorage.');
+        }
+    }
+
+    // Defensive check helper
+    _ensureMemorySubscriptionsAreMap() {
+        if (!this.subscriptions || !(this.subscriptions instanceof Map)) {
+            logger.error(`[FORUM_ALERT_SERVICE] MemoryStorage subscriptions are not a Map! Re-initializing. Current type: ${typeof this.subscriptions}, value: ${this.subscriptions}`);
+            this.subscriptions = new Map();
+            if (this.memoryStorageInstance) {
+                this.memoryStorageInstance.set('forumAlertSubscriptions', this.subscriptions);
+            } else {
+                // This case should ideally not happen if constructor logic is correct
+                logger.warn('[FORUM_ALERT_SERVICE] memoryStorageInstance was null during re-initialization of subscriptions.');
+                this.memoryStorageInstance = new MemoryStorage(); // Re-initialize memoryStorageInstance as well
+                this.memoryStorageInstance.set('forumAlertSubscriptions', this.subscriptions);
+            }
         }
     }
 
@@ -36,6 +59,7 @@ class ForumAlertService {
             logger.debug(`User ${userId} subscribed to channel ${channelId} via PostgreSQL.`);
             return true;
         } else {
+            this._ensureMemorySubscriptionsAreMap(); // Defensive check
             if (!this.subscriptions.has(channelId)) {
                 this.subscriptions.set(channelId, new Set());
             }
@@ -58,11 +82,16 @@ class ForumAlertService {
      */
     async unsubscribe(userId, channelId) {
         if (this.isPostgresAvailable) {
-            const key = `forumalert:${'any'}:${channelId}:${userId}`; // Guild ID is not needed for unsubscribe if we search by channel and user
-            const deleted = await pgDb.delete(key); // pgDb.delete handles partial keys for forum_alert type
+            // The pgDb.delete method for 'forum_alert' type handles deletion by guild_id, channel_id, user_id
+            // So we need to provide all three to delete a specific subscription.
+            // If we only provide channel_id, it deletes all for that channel.
+            // For unsubscribe, we want to delete a specific user's subscription to a specific channel.
+            const key = `forumalert:${'any'}:${channelId}:${userId}`; // 'any' for guildId will be ignored by deleteStructuredData if userId is present
+            const deleted = await pgDb.delete(key);
             logger.debug(`User ${userId} unsubscribed from channel ${channelId} via PostgreSQL.`);
             return deleted;
         } else {
+            this._ensureMemorySubscriptionsAreMap(); // Defensive check
             if (this.subscriptions.has(channelId)) {
                 const channelSubs = this.subscriptions.get(channelId);
                 if (channelSubs.delete(userId)) {
@@ -92,6 +121,7 @@ class ForumAlertService {
             );
             return result.rows.map(row => ({ channelId: row.channel_id, guildId: row.guild_id }));
         } else {
+            this._ensureMemorySubscriptionsAreMap(); // Defensive check
             const userChannels = [];
             for (const [channelId, userIds] of this.subscriptions.entries()) {
                 if (userIds.has(userId)) {
@@ -112,11 +142,13 @@ class ForumAlertService {
     async disableAlertsForChannel(channelId) {
         if (this.isPostgresAvailable) {
             // Delete all entries for a given channel_id
-            const key = `forumalert:${'any'}:${channelId}`; // Partial key for deleting all for a channel
+            // The deleteStructuredData for 'forum_alert' type handles deletion by channel_id if userId is not provided.
+            const key = `forumalert:${'any'}:${channelId}`; // 'any' for guildId will be ignored by deleteStructuredData if channelId is present
             const deleted = await pgDb.delete(key);
             logger.info(`Disabled alerts for channel ${channelId} via PostgreSQL. Removed subscriptions.`);
             return deleted;
         } else {
+            this._ensureMemorySubscriptionsAreMap(); // Defensive check
             if (this.subscriptions.has(channelId)) {
                 const removedCount = this.subscriptions.get(channelId).size;
                 this.subscriptions.delete(channelId);
@@ -135,21 +167,59 @@ class ForumAlertService {
      */
     async processAlerts(bot) {
         logger.debug('[CRON] Processing forum alerts...');
+        let allSubscriptions = [];
+
         if (this.isPostgresAvailable) {
-            // Fetch all subscriptions from the database
             const result = await pgDb.pool.query(
                 `SELECT guild_id, channel_id, user_id FROM ${pgDb.pgConfig.tables.forum_alerts}`
             );
-            const allSubscriptions = result.rows;
-
-            // TODO: Implement actual alert processing logic here using allSubscriptions.
-            // This would involve iterating through subscriptions, fetching new messages/activity,
-            // and sending DMs or pings to subscribed users.
-            logger.info(`[CRON] Found ${allSubscriptions.length} forum alert subscriptions to process.`);
+            allSubscriptions = result.rows;
         } else {
-            // Logic for memoryStorage (similar to previous implementation)
-            // This would involve iterating through this.subscriptions
-            logger.info(`[CRON] Processing ${this.subscriptions.size} forum alert subscriptions from memoryStorage.`);
+            this._ensureMemorySubscriptionsAreMap(); // Defensive check
+            // Convert memoryStorage subscriptions to a similar format
+            for (const [channelId, userIds] of this.subscriptions.entries()) {
+                for (const userId of userIds) {
+                    allSubscriptions.push({ guild_id: 'unknown', channel_id: channelId, user_id: userId });
+                }
+            }
+        }
+
+        if (allSubscriptions.length === 0) {
+            logger.debug('[CRON] No forum alert subscriptions found to process.');
+            return;
+        }
+
+        logger.info(`[CRON] Found ${allSubscriptions.length} forum alert subscriptions to process.`);
+
+        for (const sub of allSubscriptions) {
+            try {
+                const channel = await bot.channels.cache.get(sub.channel_id);
+                const user = await bot.users.cache.get(sub.user_id);
+
+                if (!channel) {
+                    logger.warn(`[CRON] Forum alert channel ${sub.channel_id} not found for user ${sub.user_id}. Removing subscription.`);
+                    // Optionally remove subscription if channel is no longer accessible
+                    await this.unsubscribe(sub.user_id, sub.channel_id);
+                    continue;
+                }
+                if (!user) {
+                    logger.warn(`[CRON] Forum alert user ${sub.user_id} not found for channel ${sub.channel_id}. Removing subscription.`);
+                    // Optionally remove subscription if user is no longer accessible
+                    await this.unsubscribe(sub.user_id, sub.channel_id);
+                    continue;
+                }
+
+                // TODO: Implement actual alert processing logic here.
+                // This would involve:
+                // 1. Fetching new messages/activity in 'channel' since the last alert was sent (or a reasonable timeframe).
+                // 2. Filtering relevant activity (e.g., new replies, specific keywords).
+                // 3. Formatting an alert message.
+                // 4. Sending a DM to 'user' or a ping in a designated alert channel.
+                logger.debug(`[CRON] Placeholder: Would send alert to user ${user.tag} for channel ${channel.name} (${channel.id}).`);
+
+            } catch (error) {
+                logger.error(`[CRON] Error processing alert for subscription (guild: ${sub.guild_id}, channel: ${sub.channel_id}, user: ${sub.user_id}):`, error);
+            }
         }
     }
 }
