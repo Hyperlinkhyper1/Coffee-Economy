@@ -1,4 +1,4 @@
-import { memoryStorage } from '../utils/memoryStorage.js';
+import { MemoryStorage } from '../utils/memoryStorage.js'; // Correctly import the class
 import { logger } from '../utils/logger.js';
 
 // This service will manage forum alert subscriptions.
@@ -8,8 +8,9 @@ class ForumAlertService {
     constructor() {
         // Using memoryStorage for now. In a real scenario, this would be a database client.
         // Structure: Map<channelId, Set<userId>>
-        this.subscriptions = memoryStorage.get('forumAlertSubscriptions') || new Map();
-        memoryStorage.set('forumAlertSubscriptions', this.subscriptions);
+        this.memoryStorageInstance = new MemoryStorage(); // Instantiate the MemoryStorage class
+        this.subscriptions = this.memoryStorageInstance.get('forumAlertSubscriptions') || new Map();
+        this.memoryStorageInstance.set('forumAlertSubscriptions', this.subscriptions);
         logger.info('ForumAlertService initialized with memoryStorage.');
     }
 
@@ -29,6 +30,7 @@ class ForumAlertService {
             return false; // Already subscribed
         }
         channelSubs.add(userId);
+        this.memoryStorageInstance.set('forumAlertSubscriptions', this.subscriptions); // Persist changes
         logger.debug(`User ${userId} subscribed to channel ${channelId}.`);
         return true;
     }
@@ -46,6 +48,7 @@ class ForumAlertService {
                 if (channelSubs.size === 0) {
                     this.subscriptions.delete(channelId); // Clean up if no more subscribers
                 }
+                this.memoryStorageInstance.set('forumAlertSubscriptions', this.subscriptions); // Persist changes
                 logger.debug(`User ${userId} unsubscribed from channel ${channelId}.`);
                 return true;
             }
@@ -81,6 +84,7 @@ class ForumAlertService {
         if (this.subscriptions.has(channelId)) {
             const removedCount = this.subscriptions.get(channelId).size;
             this.subscriptions.delete(channelId);
+            this.memoryStorageInstance.set('forumAlertSubscriptions', this.subscriptions); // Persist changes
             logger.info(`Disabled alerts for channel ${channelId}. Removed ${removedCount} subscriptions.`);
             return true;
         }
