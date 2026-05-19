@@ -47,16 +47,16 @@ class PostgreSQLDatabase {
                     ssl: pgConfig.options.ssl,
                     
                     
-                    max: pgConfig.options.max,
-                    min: pgConfig.options.min,
-                    idleTimeoutMillis: pgConfig.options.idleTimeoutMillis,
-                    connectionTimeoutMillis: pgConfig.options.connectionTimeoutMillis,
+                    max: parseInt(process.env.POSTGRES_MAX_CONNECTIONS) || 20,
+                    min: parseInt(process.env.POSTGRES_MIN_CONNECTIONS) || 2,
+                    idleTimeoutMillis: parseInt(process.env.POSTGRES_IDLE_TIMEOUT) || 30000,
+                    connectionTimeoutMillis: parseInt(process.env.POSTGRES_CONNECTION_TIMEOUT) || 10000,
                     
                     
-                    application_name: pgConfig.options.application_name,
-                    statement_timeout: pgConfig.options.statement_timeout,
-                    keepalives: pgConfig.options.keepalives,
-                    keepalives_idle: pgConfig.options.keepalives_idle,
+                    application_name: 'titanbot',
+                    statement_timeout: process.env.NODE_ENV === 'production' ? 30000 : 0,
+                    keepalives: 1,
+                    keepalives_idle: 30,
                 });
 
                 const client = await this.pool.connect();
@@ -405,6 +405,17 @@ class PostgreSQLDatabase {
                 value JSONB NOT NULL,
                 expires_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+
+            `CREATE TABLE IF NOT EXISTS ${pgConfig.tables.forum_alerts} (
+                guild_id VARCHAR(20) NOT NULL,
+                channel_id VARCHAR(20) NOT NULL,
+                user_id VARCHAR(20) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (guild_id, channel_id, user_id),
+                FOREIGN KEY (guild_id) REFERENCES ${pgConfig.tables.guilds}(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES ${pgConfig.tables.users}(id) ON DELETE CASCADE
             )`
         ];
 
@@ -444,7 +455,10 @@ class PostgreSQLDatabase {
             `CREATE INDEX IF NOT EXISTS idx_verification_audit_user_id ON ${pgConfig.tables.verification_audit}(user_id)`,
             `CREATE INDEX IF NOT EXISTS idx_verification_audit_created_at ON ${pgConfig.tables.verification_audit}(created_at)`,
             `CREATE INDEX IF NOT EXISTS idx_temp_data_expires_at ON ${pgConfig.tables.temp_data}(expires_at)`,
-            `CREATE INDEX IF NOT EXISTS idx_cache_data_expires_at ON ${pgConfig.tables.cache_data}(expires_at)`
+            `CREATE INDEX IF NOT EXISTS idx_cache_data_expires_at ON ${pgConfig.tables.cache_data}(expires_at)`,
+            `CREATE INDEX IF NOT EXISTS idx_forum_alerts_guild_id ON ${pgConfig.tables.forum_alerts}(guild_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_forum_alerts_channel_id ON ${pgConfig.tables.forum_alerts}(channel_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_forum_alerts_user_id ON ${pgConfig.tables.forum_alerts}(user_id)`
         ];
 
         for (const index of indexes) {
@@ -489,6 +503,7 @@ class PostgreSQLDatabase {
                 { name: 'update_giveaways_updated_at', table: pgConfig.tables.giveaways },
                 { name: 'update_tickets_updated_at', table: pgConfig.tables.tickets },
                 { name: 'update_afk_status_updated_at', table: pgConfig.tables.afk_status },
+                { name: 'update_forum_alerts_updated_at', table: pgConfig.tables.forum_alerts }, // Added trigger for forum_alerts
             ];
 
             const allowedTriggerIdentifiers = new Set(triggers.map(trigger => trigger.name));
@@ -822,6 +837,10 @@ class PostgreSQLDatabase {
             return { type: 'counters', guildId: parts[1], fullKey: key };
         }
 
+        if (parts[0] === 'forumalert' && parts[1] && parts[2]) {
+            return { type: 'forum_alert', guildId: parts[1], channelId: parts[2], userId: parts[3], fullKey: key };
+        }
+
         
         return { type: 'temp', fullKey: key };
     }
@@ -916,7 +935,14 @@ class PostgreSQLDatabase {
                         [parsedKey.guildId]
                     );
                     return counterResult.rows.length > 0 ? counterResult.rows[0].counters : defaultValue;
-                
+
+                case 'forum_alert':
+                    const forumAlertResult = await this.pool.query(
+                        `SELECT guild_id, channel_id, user_id FROM ${pgConfig.tables.forum_alerts} WHERE guild_id = $1 AND channel_id = $2 AND user_id = $3`,
+                        [parsedKey.guildId, parsedKey.channelId, parsedKey.userId]
+                    );
+                    return forumAlertResult.rows.length > 0 ? forumAlertResult.rows[0] : defaultValue;
+
                 default:
                     return defaultValue;
             }
@@ -1163,6 +1189,29 @@ class PostgreSQLDatabase {
                         throw queryError;
                     }
                     return true;
+
+                case 'forum_alert':
+                    await this.pool.query(
+                        `INSERT INTO ${pgConfig.tables.guilds} (id, created_at)
+                         VALUES ($1, CURRENT_TIMESTAMP)
+                         ON CONFLICT (id) DO NOTHING`,
+                        [parsedKey.guildId]
+                    );
+
+                    await this.pool.query(
+                        `INSERT INTO ${pgConfig.tables.users} (id, created_at)
+                         VALUES ($1, CURRENT_TIMESTAMP)
+                         ON CONFLICT (id) DO NOTHING`,
+                        [parsedKey.userId]
+                    );
+
+                    await this.pool.query(
+                        `INSERT INTO ${pgConfig.tables.forum_alerts} (guild_id, channel_id, user_id, updated_at)
+                         VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+                         ON CONFLICT (guild_id, channel_id, user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
+                        [parsedKey.guildId, parsedKey.channelId, parsedKey.userId]
+                    );
+                    return true;
                 
                 default:
                     return false;
@@ -1215,6 +1264,25 @@ class PostgreSQLDatabase {
                 
                 case 'ticket':
                     await this.pool.query(`DELETE FROM ${pgConfig.tables.tickets} WHERE guild_id = $1 AND channel_id = $2`, [parsedKey.guildId, parsedKey.channelId]);
+                    return true;
+
+                case 'forum_alert':
+                    if (parsedKey.userId) { // Delete specific user subscription
+                        await this.pool.query(
+                            `DELETE FROM ${pgConfig.tables.forum_alerts} WHERE guild_id = $1 AND channel_id = $2 AND user_id = $3`,
+                            [parsedKey.guildId, parsedKey.channelId, parsedKey.userId]
+                        );
+                    } else if (parsedKey.channelId) { // Delete all subscriptions for a channel
+                        await this.pool.query(
+                            `DELETE FROM ${pgConfig.tables.forum_alerts} WHERE guild_id = $1 AND channel_id = $2`,
+                            [parsedKey.guildId, parsedKey.channelId]
+                        );
+                    } else { // Delete all subscriptions for a guild (less likely, but for completeness)
+                        await this.pool.query(
+                            `DELETE FROM ${pgConfig.tables.forum_alerts} WHERE guild_id = $1`,
+                            [parsedKey.guildId]
+                        );
+                    }
                     return true;
                 
                 default:
@@ -1290,4 +1358,3 @@ class PostgreSQLDatabase {
 const pgDb = new PostgreSQLDatabase();
 
 export { PostgreSQLDatabase, pgDb };
-

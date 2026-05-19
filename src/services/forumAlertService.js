@@ -90,6 +90,18 @@ class ForumAlertService {
         }
         return false; // No subscriptions for this channel
     }
+
+    /**
+     * Processes and sends out forum alerts to subscribed users.
+     * This method is called by a cron job.
+     * @param {object} bot The Discord client instance.
+     */
+    async processAlerts(bot) {
+        logger.debug('[CRON] Processing forum alerts...');
+        // TODO: Implement actual alert processing logic here.
+        // This would involve iterating through subscriptions, fetching new messages/activity,
+        // and sending DMs or pings to subscribed users.
+    }
 }
 
 export const forumAlertService = new ForumAlertService();

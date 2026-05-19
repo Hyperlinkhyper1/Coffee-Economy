@@ -18,6 +18,7 @@ const configuredTables = {
     verification_audit: 'verification_audit',
     temp_data: 'temp_data',
     cache_data: 'cache_data',
+    forum_alerts: 'forum_alerts', // Added new table
 };
 
 const allowedTableIdentifiers = new Set([
@@ -37,6 +38,7 @@ const allowedTableIdentifiers = new Set([
     'verification_audit',
     'temp_data',
     'cache_data',
+    'forum_alerts', // Added new table
 ]);
 
 const validatedTables = Object.fromEntries(
@@ -98,10 +100,9 @@ export const pgConfig = {
         ticket: 604800,
         
         afk: 86400,
-        
-        welcome: null,
-        
+
         birthday: null,
+        forumAlert: null, // Added default TTL for forum alerts
     },
     
     features: {
@@ -143,5 +144,3 @@ export const pgConfig = {
 };
 
 export default pgConfig;
-
-

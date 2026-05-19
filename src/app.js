@@ -11,7 +11,7 @@ import { getServerCounters, saveServerCounters, updateCounter } from './services
 import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
-import { ForumAlertService } from './services/forumAlertService.js';
+import { forumAlertService } from './services/forumAlertService.js'; // Corrected import
 import ModrinthService from './services/modrinthService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
 import CardService from './services/cardService.js'; // Import CardService
@@ -238,7 +238,7 @@ class TitanBot extends Client {
     cron.schedule('0 6 * * *', () => checkBirthdays(this));
     cron.schedule('* * * * *', () => checkGiveaways(this));
     cron.schedule('*/15 * * * *', () => this.updateAllCounters());
-    cron.schedule('* * * * *', () => ForumAlertService.processAlerts(this));
+    cron.schedule('* * * * *', () => forumAlertService.processAlerts(this)); // Corrected call
     ModrinthService.startModrinthMonitor(this); // Start the Modrinth monitor
 
     // Re-enabled and enhanced cron job for card pack shop restock every 15 minutes
