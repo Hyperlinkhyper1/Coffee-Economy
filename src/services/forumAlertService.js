@@ -1,111 +1,91 @@
+import { memoryStorage } from '../utils/memoryStorage.js';
 import { logger } from '../utils/logger.js';
 
-export class ForumAlertService {
-    static getAlertsKey(guildId) {
-        return `guild:${guildId}:forum_alerts`;
+// This service will manage forum alert subscriptions.
+// It should ideally interact with postgresDatabase.js, but for now, we'll use memoryStorage as a fallback.
+
+class ForumAlertService {
+    constructor() {
+        // Using memoryStorage for now. In a real scenario, this would be a database client.
+        // Structure: Map<channelId, Set<userId>>
+        this.subscriptions = memoryStorage.get('forumAlertSubscriptions') || new Map();
+        memoryStorage.set('forumAlertSubscriptions', this.subscriptions);
+        logger.info('ForumAlertService initialized with memoryStorage.');
     }
 
-    static async getAlerts(client, guildId) {
-        return await client.db.get(this.getAlertsKey(guildId), []);
-    }
-
-    static async saveAlerts(client, guildId, alerts) {
-        return await client.db.set(this.getAlertsKey(guildId), alerts);
-    }
-
-    static async addAlert(client, guildId, channelId, tag) {
-        const alerts = await this.getAlerts(client, guildId);
-        const existing = alerts.find(a => a.tag === tag);
-        
-        if (existing) {
-            existing.channelId = channelId;
-        } else {
-            alerts.push({
-                tag,
-                channelId,
-                interval: 24 * 60 * 60 * 1000, // Default 1 day
-                lastPing: 0,
-                pingUsers: []
-            });
+    /**
+     * Subscribes a user to alerts for a specific channel.
+     * @param {string} userId The ID of the user.
+     * @param {string} channelId The ID of the channel (forum post).
+     * @param {string} guildId The ID of the guild.
+     * @returns {Promise<boolean>} True if subscribed, false if already subscribed.
+     */
+    async subscribe(userId, channelId, guildId) {
+        if (!this.subscriptions.has(channelId)) {
+            this.subscriptions.set(channelId, new Set());
         }
-        
-        await this.saveAlerts(client, guildId, alerts);
+        const channelSubs = this.subscriptions.get(channelId);
+        if (channelSubs.has(userId)) {
+            return false; // Already subscribed
+        }
+        channelSubs.add(userId);
+        logger.debug(`User ${userId} subscribed to channel ${channelId}.`);
         return true;
     }
 
-    static async updateConfig(client, guildId, tag, intervalStr) {
-        const interval = this.parseInterval(intervalStr);
-        if (!interval) return false;
-
-        const alerts = await this.getAlerts(client, guildId);
-        const alert = alerts.find(a => a.tag === tag);
-        if (!alert) return false;
-
-        alert.interval = interval;
-        await this.saveAlerts(client, guildId, alerts);
-        return true;
-    }
-
-    static async toggleUser(client, guildId, tag, userId) {
-        const alerts = await this.getAlerts(client, guildId);
-        const alert = alerts.find(a => a.tag === tag);
-        if (!alert) return { success: false, message: 'Alert not found' };
-
-        const userIndex = alert.pingUsers.indexOf(userId);
-        let added = false;
-        if (userIndex === -1) {
-            alert.pingUsers.push(userId);
-            added = true;
-        } else {
-            alert.pingUsers.splice(userIndex, 1);
-        }
-
-        await this.saveAlerts(client, guildId, alerts);
-        return { success: true, added };
-    }
-
-    static parseInterval(str) {
-        const match = str.match(/^(\d+)([hd])$/i);
-        if (!match) return null;
-
-        const val = parseInt(match[1]);
-        const unit = match[2].toLowerCase();
-
-        if (unit === 'h') return val * 60 * 60 * 1000;
-        if (unit === 'd') return val * 24 * 60 * 60 * 1000;
-        return null;
-    }
-
-    static async processAlerts(client) {
-        for (const [guildId, guild] of client.guilds.cache) {
-            try {
-                const alerts = await this.getAlerts(client, guildId);
-                let changed = false;
-                const now = Date.now();
-
-                for (const alert of alerts) {
-                    if (alert.pingUsers.length === 0) continue;
-                    
-                    if (now >= alert.lastPing + alert.interval) {
-                        const channel = guild.channels.cache.get(alert.channelId);
-                        if (channel && channel.isTextBased()) {
-                            const pings = alert.pingUsers.map(id => `<@${id}>`).join(' ');
-                            await channel.send({
-                                content: `🔔 **Forum Alert: ${alert.tag}**\n${pings}\nThis is your scheduled reminder.`
-                            }).catch(err => logger.error(`Failed to send alert in ${alert.channelId}:`, err));
-                            
-                            alert.lastPing = now;
-                            changed = true;
-                        }
-                    }
+    /**
+     * Unsubscribes a user from alerts for a specific channel.
+     * @param {string} userId The ID of the user.
+     * @param {string} channelId The ID of the channel (forum post).
+     * @returns {Promise<boolean>} True if unsubscribed, false if not subscribed.
+     */
+    async unsubscribe(userId, channelId) {
+        if (this.subscriptions.has(channelId)) {
+            const channelSubs = this.subscriptions.get(channelId);
+            if (channelSubs.delete(userId)) {
+                if (channelSubs.size === 0) {
+                    this.subscriptions.delete(channelId); // Clean up if no more subscribers
                 }
-
-                if (changed) {
-                    await this.saveAlerts(client, guildId, alerts);
-                }
-            } catch (error) {
-                logger.error(`Error processing alerts for guild ${guildId}:`, error);
+                logger.debug(`User ${userId} unsubscribed from channel ${channelId}.`);
+                return true;
             }
         }
+        return false; // Not subscribed
+    }
+
+    /**
+     * Lists all channels a user is subscribed to.
+     * @param {string} userId The ID of the user.
+     * @returns {Promise<Array<{channelId: string, guildId: string}>>} An array of subscribed channel info.
+     */
+    async listSubscriptions(userId) {
+        const userChannels = [];
+        for (const [channelId, userIds] of this.subscriptions.entries()) {
+            if (userIds.has(userId)) {
+                // In a real scenario, we'd fetch guildId from the stored data or Discord API if needed.
+                // For memoryStorage, we only store channelId and userId.
+                userChannels.push({ channelId: channelId, guildId: 'unknown' }); // Placeholder for guildId
+            }
+        }
+        logger.debug(`Listed subscriptions for user ${userId}: ${userChannels.length} channels.`);
+        return userChannels;
+    }
+
+    /**
+     * Disables all alerts for a specific channel, effectively removing all subscriptions for it.
+     * This is intended to be called when a forum post is closed.
+     * @param {string} channelId The ID of the channel (forum post).
+     * @returns {Promise<boolean>} True if subscriptions were removed, false if none existed.
+     */
+    async disableAlertsForChannel(channelId) {
+        if (this.subscriptions.has(channelId)) {
+            const removedCount = this.subscriptions.get(channelId).size;
+            this.subscriptions.delete(channelId);
+            logger.info(`Disabled alerts for channel ${channelId}. Removed ${removedCount} subscriptions.`);
+            return true;
+        }
+        return false; // No subscriptions for this channel
     }
 }
+
+export const forumAlertService = new ForumAlertService();
